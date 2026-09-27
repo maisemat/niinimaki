@@ -2,7 +2,7 @@
 // tree; bark and leaves occupy separate textures so seasonal color/visibility
 // changes do not regenerate the forest or its geometry.
 (() => {
-  const tileW=160, tileH=192, variants=3;
+  const tileW=160, tileH=192, variants=3, kinds=5;
   function random(seed){let state=seed>>>0;return()=>{state^=state<<13;state^=state>>>17;state^=state<<5;return(state>>>0)/4294967296}}
   function stroke(ctx,a,b,width,color){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.quadraticCurveTo((a[0]+b[0])/2+(b[0]-a[0])*.12,(a[1]+b[1])/2,b[0],b[1]);ctx.stroke()}
   function tuft(ctx,x,y,rx,ry,rng,conifer){
@@ -12,11 +12,16 @@
     ctx.fillStyle='rgba(255,255,255,.16)';ctx.beginPath();ctx.ellipse(x-rx*.22,y-ry*.25,rx*.36,ry*.23,0,0,Math.PI*2);ctx.fill();
   }
   function makeTree(wood,leaf,kind,variant){
-    const rng=random(0x9e3779b9+kind*4099+variant*137),ox=variant*tileW,cx=ox+tileW/2,base=185;
+    const rng=random(0x9e3779b9+kind*4099+variant*137),ox=variant*tileW,cx=ox+tileW/2,base=tileH;
     const tops=[18,8,22][variant],lean=(rng()-.5)*7,tip=cx+lean,top=kind===1?tops+16:tops;
-    wood.fillStyle=kind===3?'#655445':kind===2?'#55493d':'#68594b';
+    wood.fillStyle=kind===4?'#e8e8df':kind===3?'#87847e':kind===0?'#8a8780':kind===2?'#55493d':'#68594b';
     wood.beginPath();wood.moveTo(cx-4.5,base);wood.lineTo(cx+4.5,base);wood.lineTo(tip+1.5,top);wood.lineTo(tip-1.5,top);wood.closePath();wood.fill();
-    wood.fillStyle='rgba(20,18,13,.22)';wood.beginPath();wood.moveTo(cx-4,base);wood.lineTo(cx-2,base);wood.lineTo(tip-1,top);wood.lineTo(tip-2,top);wood.closePath();wood.fill();
+    wood.fillStyle=kind===4?'rgba(31,37,34,.26)':(kind===0||kind===3)?'rgba(50,54,52,.16)':'rgba(20,18,13,.22)';wood.beginPath();wood.moveTo(cx-4,base);wood.lineTo(cx-2,base);wood.lineTo(tip-1,top);wood.lineTo(tip-2,top);wood.closePath();wood.fill();
+    if(kind===4){
+      // Sparse dark lenticels, held inside the narrow white birch trunk.
+      wood.strokeStyle='#303535';
+      for(let y=58;y<179;y+=11+rng()*8){const x=cx+lean*(1-y/base),w=2.1*(y-top)/(base-top);wood.lineWidth=.65+rng()*.55;wood.beginPath();wood.moveTo(x-w,y);wood.lineTo(x+w*.7,y-1-rng()*2);wood.stroke()}
+    }
     if(kind===1||kind===2){
       const spruce=kind===2,tiers=spruce?11:7,first=spruce?28:49,last=spruce?166:143;
       for(let t=0;t<tiers;t++){
@@ -35,11 +40,11 @@
       tuft(leaf,tip,top+10,kind===2?7:10,kind===2?15:11,rng,true);
     } else {
       // Broadleaf crown has several independent branches and leaf groups.
-      const branchCount=kind===3?11:9,spread=kind===3?57:47;
+      const branchCount=kind===3?11:kind===4?10:9,spread=kind===3?57:kind===4?50:47;
       for(let b=0;b<branchCount;b++){
         const side=b%2?-1:1,rank=Math.floor(b/2),startY=138-rank*12+(rng()-.5)*6;
         const reach=(.42+.58*rng())*spread,ex=cx+side*reach,ey=28+rank*8+(rng()-.5)*19;
-        stroke(wood,[cx+(rng()-.5)*3,startY],[ex,ey],Math.max(1.5,4-rank*.42),'#55483c');
+        stroke(wood,[cx+(rng()-.5)*3,startY],[ex,ey],kind===4?Math.max(.75,1.8-rank*.16):Math.max(1.1,2.8-rank*.27),kind===4?'#686e6b':'#74716d');
         const middleX=cx+side*reach*.67,middleY=startY+(ey-startY)*.72;
         if(b%3!==0)tuft(leaf,middleX,middleY,10+rng()*6,9+rng()*6,rng,false);
         tuft(leaf,ex,ey,14+rng()*8,12+rng()*8,rng,false);
@@ -50,7 +55,7 @@
   }
   function atlases(){
     const result=[];
-    for(let kind=0;kind<4;kind++){
+    for(let kind=0;kind<kinds;kind++){
       const barkCanvas=document.createElement('canvas'),leafCanvas=document.createElement('canvas');
       barkCanvas.width=leafCanvas.width=tileW*variants;barkCanvas.height=leafCanvas.height=tileH;
       const wood=barkCanvas.getContext('2d'),leaf=leafCanvas.getContext('2d');
@@ -61,5 +66,5 @@
     }
     return result;
   }
-  window.TREE_ART={atlases,variantCount:variants};
+  window.TREE_ART={atlases,variantCount:variants,kindCount:kinds};
 })();
