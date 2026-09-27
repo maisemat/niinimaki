@@ -1,0 +1,40 @@
+ALUEEN LAAJENNUS 27.9.2026
+
+ETRS-TM35FIN: E335000–359000, N6749000–6775000 (24 × 26 km).
+Koko 24 × 26 km alueelta on 25 m korkeusnäyte. Kulkijan lähellä
+3D-pinta tarkentuu siihen; kauempana käytetään 50 m perusverkkoa. Kaukaisin taustamaasto on 300 m verkko. Pisteväli ei kuvaa
+korkeusaineiston mittaustarkkuutta.
+
+Korkeus: AWS Terrain Tiles / Mapzen Terrarium, zoom 12.
+https://registry.opendata.aws/terrain-tiles/
+
+Maankäyttö, tiet, rakennukset, rannat ja vesiuomat: OpenStreetMap,
+haettu 26.–27.9.2026 Overpass- ja OSM-rajapinnoista. OSM:n mahdolliset
+puutteet säilyvät aineistossa. Vesien alkuperäisiä mutkia ei tasoiteta
+keksityiksi kaariksi. Järvien tasot arvioidaan korkeusaineistosta.
+https://www.openstreetmap.org/copyright
+
+Puuston korkeus/peitto: Suomen metsäkeskuksen latvusmalli.
+Puulajiosuudet: Metsäkeskuksen metsävarakuviot, proportionpine,
+proportionspruce, proportionother. Kuviot luokitellaan vallitsevan lajin
+mukaan. Lajitieto voi puuttua, jolloin käytetään yleistä puukuvausta.
+Puuyksilöiden sijainnit ja muodot eivät ole mitattuja.
+https://www.metsakeskus.fi/fi/avoin-metsa-ja-luontotieto/metsatietoaineistot/metsavaratiedot
+
+Lähellä piirretään tiheää yksittäispuustoa noin 1,5 km säteellä.
+Kaukana metsä kuvataan 50 m välein näytteistetyillä puuryhmillä.
+Molempien pohjana on sama latvusmalli. Tarkkuus vaihtuu häivyttäen.
+2 km metsäruudut ja 4 km maastoruudut rajataan kameran näkymän mukaan.
+Maaston piirron ruudutus ei muuta rantaviivoja tai kulkijan korkeutta.
+
+RUNTIME JA GEOMETRIATARKISTUS
+hydrology-source.json.gz sisältää korkeusverkot ja vesigeometriat.
+build_hydrology.py muodostaa yhteisen maan ja veden kolmioverkon
+(Shapely 2.1+, NumPy). hydrology-validation.json sisältää topologian
+mittarit. test_hydrology.cjs tarkistaa pinnat, veden tasaisuuden,
+saarten reiät vesipinnassa sekä aiemmin korjatut Onkilammin yhteydet.
+source-overlaps.json listaa rakennusten keskipisteet, jotka osuvat OSM:n
+vesirajojen sisään: niille ei ole keksitty keinotekoisia saaria.
+
+Maaston ja veden binäärit ovat hydrology-mesh.js-tiedostossa häviöttömästi
+gzip-pakattuina (21,5 Mt). 25 m näyte on mid25-data.js (1,5 Mt).
