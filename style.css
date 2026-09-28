@@ -60,3 +60,164 @@ button,input,select,.badge,.status,.compass,.mapbox,.mapSourceNotice,.observer-l
 
 
 .weatherSettings{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.weatherSettings input{width:90px}.weatherSettings small{flex-basis:100%}
+
+.performanceSettings{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border:1px solid #b3bfba;padding:5px 7px;margin:8px 0}.performanceSettings label{display:flex;align-items:center;gap:4px;margin:0;white-space:nowrap;font-size:.75rem}.performanceSettings input{accent-color:#426b6b}.performanceSettings small{flex-basis:100%;color:#486466}
+/* Camera controls: a rotated horizontal range works consistently in Safari. */
+.dock{right:12px;bottom:14px;width:auto;max-width:min(340px,calc(100vw - 24px));padding:7px;text-align:left;display:flex;flex-direction:column;align-items:stretch;gap:5px}
+.dock:not(.closed){width:min(340px,calc(100vw - 24px))}
+.dock.closed{width:auto;min-width:0}
+.dock #dockBody{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:0;align-items:stretch;text-align:center}
+.dock.closed #dockBody{display:none}
+.dock .cameraControls{grid-column:1/-1;grid-row:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:1fr;gap:5px;margin:0;padding:0;border:0}
+.dock .cameraAxis{min-width:0;display:flex;flex-direction:column;align-items:center}
+.dock .cameraControls label,.dock .cameraControls label:not(:first-child){display:flex;flex-direction:column;align-items:center;gap:2px;margin:0;width:100%;font-size:.76rem;line-height:1.15;white-space:nowrap}
+.dock .cameraControls output{font-size:.73rem;font-variant-numeric:tabular-nums}
+.dock .sliderLane{position:relative;width:100%;height:124px;flex:none;overflow:hidden}
+.dock .cameraControls input,.dock .cameraControls input#height,.dock .cameraControls input#tilt,.dock .cameraControls input#fov{position:absolute;top:50%;left:50%;width:110px;height:22px;margin:0;transform:translate(-50%,-50%) rotate(-90deg);writing-mode:horizontal-tb;direction:ltr;grid-column:auto;grid-row:auto;-webkit-appearance:none;appearance:none;background:transparent;accent-color:#2d5e62;cursor:pointer;touch-action:none}
+.dock .cameraControls input::-webkit-slider-runnable-track{height:8px;background:#c9d5cf;border:1px solid #829c96;border-radius:0}
+.dock .cameraControls input::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;margin-top:-7px;background:#2d5e62;border:2px solid #f5faf7;border-radius:50%}
+.dock .cameraControls input::-moz-range-track{height:8px;background:#c9d5cf;border:1px solid #829c96;border-radius:0}
+.dock .cameraControls input::-moz-range-thumb{width:18px;height:18px;background:#2d5e62;border:2px solid #f5faf7;border-radius:50%}
+.dock .move{grid-column:1/-1;grid-row:2;position:static;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:42px 42px;gap:5px;align-items:stretch}
+.dock .move button{width:100%;height:100%;min-width:0;border-radius:0;font-size:1.25rem;touch-action:none}
+.dock .move [data-move=forward]{grid-column:2;grid-row:1}
+.dock .move #helpToggle{grid-column:3;grid-row:1;background:#d3dfd9;color:#1b4144;font-size:1.1rem}
+.dock .move [data-move=left]{grid-column:1;grid-row:2}
+.dock .move [data-move=back]{grid-column:2;grid-row:2}
+.dock .move [data-move=right]{grid-column:3;grid-row:2}
+.dock .speedSwitch{grid-column:1/-1;grid-row:3;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+.dock .speedSwitch button{min-height:31px;font-size:.79rem}
+.dock #dockToggle{align-self:flex-end;min-width:94px;width:auto;height:30px;padding:2px 9px;font-size:.85rem;font-weight:700;line-height:1}
+.dock.closed #dockToggle{min-width:94px}
+.helpPopover{bottom:330px}
+@media(max-width:700px){.dock{right:5px;bottom:5px;max-width:min(300px,calc(100vw - 14px))}.dock:not(.closed){width:min(300px,calc(100vw - 14px))}.dock .sliderLane{height:103px}.dock .cameraControls input,.dock .cameraControls input#height,.dock .cameraControls input#tilt,.dock .cameraControls input#fov{width:91px}.dock .move{grid-template-rows:37px 37px}.dock .speedSwitch button{min-height:28px}.helpPopover{bottom:300px}}
+/* Keep date, year scrubber and project phase in the collapsed strip. */
+.yearPanel.closed{max-height:54px;overflow:hidden;padding-bottom:0}
+.yearPanel.closed #yearPanelBody{display:none}
+.yearHead{display:grid;grid-template-columns:auto minmax(150px,1fr) auto 28px;align-items:center;gap:9px;min-height:43px}
+.yearIdentity{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.yearHead .yearTrack{min-width:0;margin:0}
+.yearHead .yearTrack input{display:block;width:100%;height:16px}
+.yearHead .yearTrack:before{height:5px}
+.yearHead .months{font-size:.52rem;line-height:1.1}
+.yearHead .phaseButtons{display:flex;align-items:center;white-space:nowrap}
+.yearHead .phaseButtons button{min-height:27px}
+.yearHead #timelineToggle{width:28px;height:27px}
+.timelineBottom>label[for=timeRate]{width:120px;min-width:120px;display:flex;justify-content:space-between;gap:4px;white-space:nowrap}
+.timelineBottom #timeRateText{display:inline-block;width:4ch;text-align:right;font-variant-numeric:tabular-nums}
+.timelineBottom #timeRate{width:110px;min-width:110px;flex:none}
+@media(max-width:900px){.yearHead{grid-template-columns:auto minmax(100px,1fr) auto 28px;gap:5px}.yearIdentity{gap:4px}.yearIdentity strong{font-size:.75rem}.yearPanel #date{font-size:.72rem;margin:0}.yearHead .months{font-size:.43rem}}
+@media(max-width:700px){.yearPanel.closed{max-height:81px}.yearHead{grid-template-columns:minmax(0,1fr) auto 27px;grid-template-rows:auto auto;min-height:65px;gap:2px 4px}.yearIdentity{grid-column:1;grid-row:1}.yearHead .phaseButtons{grid-column:2;grid-row:1}.yearHead #timelineToggle{grid-column:3;grid-row:1}.yearHead .yearTrack{grid-column:1/-1;grid-row:2}.yearHead .months{font-size:.48rem}.yearIdentity strong{font-size:.68rem}.yearPanel #date{font-size:.65rem;padding:1px;margin:0;max-width:116px}.yearHead .phaseButtons button{font-size:.6rem;padding:2px 3px;min-height:23px}.yearHead #timelineToggle{min-height:23px;height:23px}}
+.compactTimeline{display:block}
+.yearHead .months span{margin-left:0}
+/* The always-visible strip holds date, clock and project phase. */
+.yearHead{grid-template-columns:auto minmax(135px,220px) auto 28px;justify-content:space-between;min-height:40px}
+.yearHead .timeColumn{display:grid;grid-template-columns:1fr;gap:0;border:0;padding:0;min-width:0}
+.yearHead .timeColumn label{font-size:.72rem;display:flex;justify-content:space-between;line-height:1}
+.yearHead .timeColumn input{width:100%;height:16px;margin:0}
+.yearPanel.closed{max-height:50px}
+/* Seasonal dial: the color ring begins at 1 o'clock, the year boundary. */
+.compactTimeline{display:grid;grid-template-columns:156px minmax(0,1fr);gap:12px;align-items:center}
+.yearDialWrap{display:flex;flex-direction:column;align-items:center;justify-content:center}
+.yearDial{--year-angle:199deg;position:relative;width:142px;height:142px;flex:none;cursor:pointer;touch-action:none;user-select:none;outline:none}
+.yearDial:focus-visible{outline:2px solid #275e62;outline-offset:2px}
+.yearDialRing{position:absolute;inset:20px;border-radius:50%;background:conic-gradient(from 30deg,#e1e8eb 0deg 62deg,#bbcf99 62deg 110deg,#5e9e5b 110deg 225deg,#d9ae59 225deg 273deg,#a48154 273deg 306deg,#e1e8eb 306deg 360deg);border:1px solid #667f7d;box-shadow:inset 0 0 0 8px #f4f0e5,inset 0 0 0 9px #78908b}
+.yearDialHand{position:absolute;left:50%;top:50%;width:3px;height:43px;background:#163f42;transform-origin:50% 100%;transform:translate(-50%,-100%) rotate(var(--year-angle));border-radius:1px}
+.yearDialHand:before{content:"";position:absolute;left:-5px;top:-4px;width:13px;height:13px;border-radius:50%;background:#163f42;border:2px solid #fff}
+.yearDialLabel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:.77rem;font-weight:700;white-space:nowrap;color:#1b4144;background:#f4f0e5cf;padding:2px}
+.yearDialMonth{position:absolute;transform:translate(-50%,-50%);font-size:.48rem;line-height:1;pointer-events:none;color:#365754;font-weight:700}
+.yearDialCaption{font-size:.65rem;line-height:1;color:#4c6967}
+.extraSettings{display:flex;align-items:center;gap:12px;border-top:1px solid #b3bfba;margin-top:5px;padding-top:5px;font-size:.7rem}
+.extraSettings .performanceSettings{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.extraSettings .performanceSettings label{white-space:nowrap}
+.extraSettings .performanceSettings small{display:none}
+.extraSettings .terrainQuality{width:150px;flex:none;margin:0;padding:3px 6px}
+.extraSettings .terrainQuality label{font-size:.65rem}
+.extraSettings .terrainQuality input{height:13px}
+.extraSettings .terrainQuality small{display:none}
+.timelineBottom .weatherSettings{display:flex;align-items:center;gap:5px;margin:0 0 0 4px;padding:0;border:0;flex:none}
+.timelineBottom .weatherSettings label{font-size:.68rem;white-space:nowrap;display:flex;align-items:center;gap:3px}
+.timelineBottom .weatherSettings output{font-variant-numeric:tabular-nums}
+.timelineBottom .weatherSettings input{width:68px;min-width:55px;height:16px;margin:0;accent-color:#426b6b}
+.timelineBottom .weatherSettings small{display:none}
+.sourcesDrawer{position:absolute;z-index:9;left:var(--drawer-width,370px);right:0;bottom:0;margin:0;padding:0;border:0;color:#203f42;background:#f4f0e5ed;box-shadow:0 -3px 15px #10252b55}
+.sourcesDrawer summary{display:block;width:max-content;margin-left:auto;padding:5px 12px;border:1px solid #75908d;border-bottom:0;background:#e3e9df;color:#234e52;font-size:.72rem;cursor:pointer;list-style:none}
+.sourcesDrawer summary::-webkit-details-marker{display:none}
+.sourcesDrawer[open] summary{width:100%;text-align:right}
+.sourcesDrawer .details{max-height:52vh;overflow:auto;padding:10px 16px 18px;font-size:.76rem;line-height:1.45;background:#f4f0e5}
+.sourcesDrawer .details a{color:#24636b}
+@media(max-width:900px){.yearHead{grid-template-columns:auto minmax(100px,1fr) auto 28px}.compactTimeline{grid-template-columns:142px minmax(0,1fr);gap:5px}.timelineBottom .weatherSettings input{width:55px}}
+@media(max-width:700px){.yearHead{grid-template-columns:minmax(0,1fr) auto 27px;grid-template-rows:auto auto;min-height:67px}.yearHead .timeColumn{grid-column:1/-1;grid-row:2}.yearPanel.closed{max-height:80px}.compactTimeline{grid-template-columns:1fr}.yearDial{width:132px;height:132px}.yearDialWrap{margin:0 auto}.extraSettings{flex-wrap:wrap}.sourcesDrawer{left:var(--drawer-width,42px)}.sourcesDrawer .details{max-height:60vh}}
+.yearDialHand{position:absolute;inset:0;width:auto;height:auto;background:none;border:0;border-radius:0;transform:rotate(var(--year-angle));transform-origin:center}
+.yearDialHand:before{content:"";position:absolute;left:calc(50% - 1.5px);top:29px;width:3px;height:42px;border:0;border-radius:0;background:#163f42}
+.yearDialHand:after{content:"";position:absolute;left:calc(50% - 7px);top:23px;width:14px;height:14px;border:2px solid #fff;border-radius:50%;background:#163f42}
+.dock .fovAxis .sliderLane:after{content:"";position:absolute;left:calc(50% + 12px);top:52.94%;width:11px;height:2px;background:#204f52;pointer-events:none}
+/* Compact controller: roughly five CSS centimetres wide, with square direction keys. */
+.dock,.dock:not(.closed){width:min(5cm,calc(100vw - 14px));max-width:none;padding:5px;gap:4px}
+.dock.closed{width:auto}
+.dock #dockBody,.dock .cameraControls,.dock .move,.dock .speedSwitch{gap:4px}
+.dock .cameraControls label,.dock .cameraControls label:not(:first-child){font-size:.58rem;line-height:1.05}
+.dock .cameraControls output{font-size:.6rem}
+.dock .sliderLane{height:100px}
+.dock .cameraControls input,.dock .cameraControls input#height,.dock .cameraControls input#tilt,.dock .cameraControls input#fov{width:90px}
+.dock .move{grid-template-rows:repeat(2,minmax(0,1fr));aspect-ratio:3/2}
+.dock .move button{width:100%;height:100%;font-size:1rem}
+.dock .speedSwitch button{min-height:25px;font-size:.62rem;padding:2px 0}
+.dock #dockToggle{min-width:70px;height:26px;padding:2px 6px;font-size:.72rem}
+.dock.closed #dockToggle{min-width:70px}
+@media(max-width:700px){.dock,.dock:not(.closed){width:min(5cm,calc(100vw - 14px))}.dock .sliderLane{height:100px}.dock .cameraControls input,.dock .cameraControls input#height,.dock .cameraControls input#tilt,.dock .cameraControls input#fov{width:90px}.dock .move{grid-template-rows:repeat(2,minmax(0,1fr))}}
+.compassRose{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;transform:rotate(var(--compass-angle,0deg));transform-origin:center}
+.compassRose span{margin:1px 0 0}
+#mobileMapToggle,#mobileJoystick{display:none}
+@media(max-width:700px){
+ .yearPanel{left:0;right:0;width:100%;max-height:min(72dvh,650px);padding:calc(4px + env(safe-area-inset-top)) 8px 6px;overflow:auto}
+ .yearPanel.closed{max-height:calc(77px + env(safe-area-inset-top))}
+ .yearHead{grid-template-columns:minmax(0,1fr) auto 28px;grid-template-rows:auto auto;min-height:66px;gap:3px 5px}
+ .yearIdentity{grid-column:1;grid-row:1;min-width:0}
+ .yearIdentity strong{font-size:.7rem}
+ .yearPanel #date{max-width:125px;font-size:.68rem}
+ .yearHead .phaseButtons{grid-column:2;grid-row:1}
+ .yearHead #timelineToggle{grid-column:3;grid-row:1}
+ .yearHead .timeColumn{grid-column:1/-1;grid-row:2}
+ .yearHead .timeColumn input{min-height:25px}
+ .compactTimeline{grid-template-columns:118px minmax(0,1fr);gap:6px}
+ .yearDial{width:115px;height:115px}
+ .yearDialWrap{margin:0}
+ .yearDialMonth{font-size:.4rem}
+ .timeGrid{grid-template-columns:1fr;gap:3px}
+ .timelineBottom{flex-wrap:wrap;gap:5px}
+ .timelineBottom .audioControls{display:flex;flex-wrap:wrap}
+ .timelineBottom .weatherSettings{flex-wrap:wrap;margin:0}
+ .timelineBottom .weatherSettings input{width:65px}
+ .extraSettings{gap:5px}
+ .top,#app:has(.yearPanel.closed) .top{left:8px;right:8px;top:calc(var(--panel-bottom,80px) + 5px);padding:0}
+ .top h1{font-size:1rem}
+ .cornerMetrics{top:calc(var(--panel-bottom,80px) + 7px);right:6px;padding:3px 5px}
+ .cornerMetrics span{font-size:.48rem}.cornerMetrics strong{font-size:.54rem}
+ .compass,#app:has(.yearPanel.closed) .compass{top:calc(var(--panel-bottom,80px) + 58px);right:8px}
+ .mapbox,.mapbox.collapsed{position:fixed;left:0;right:0;top:auto;bottom:0;width:100%!important;max-width:none;height:min(62dvh,530px);padding:0;z-index:20;transform:translateY(calc(100% - 36px));transition:transform .22s ease;box-shadow:0 -5px 18px #10252b77}
+ .mapbox.mobile-open{transform:translateY(0)}
+ .mapbox .maphead,.mapbox .maphint,.mapbox .mapViewport,.mapbox .mapfoot,.mapbox .mapzoom{display:flex}
+ .mapbox .mapViewport{display:block}
+ .mapbox .maphead{padding-top:5px}
+ .mapbox .drawerEdge{display:none}
+ #mobileMapToggle{display:block;flex:none;width:100%;height:36px;border:0;border-bottom:1px solid #9bcbd0;background:#173d48;color:#f3ffff;font-size:.82rem;font-weight:700;touch-action:none}
+ .mapzoom{padding-left:8px}
+ .dock,.dock:not(.closed){position:static;width:0;max-width:none;padding:0;border:0;background:none;box-shadow:none;pointer-events:none}
+ .dock #dockBody{display:contents}
+ .dock .cameraControls{position:fixed;z-index:12;left:6px;bottom:calc(58px + env(safe-area-inset-bottom));width:104px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;padding:5px;background:#eaece3c7;border:1px solid #6c8985;pointer-events:auto}
+ .dock .cameraControls label,.dock .cameraControls label:not(:first-child){font-size:.58rem}
+ .dock .cameraControls output{font-size:.57rem}
+ .dock .sliderLane{height:102px}
+ .dock .cameraControls input,.dock .cameraControls input#height,.dock .cameraControls input#tilt{width:90px}
+ .dock .fovAxis,.dock .move,.dock #dockToggle{display:none}
+ .dock .speedSwitch{position:fixed;z-index:12;right:9px;bottom:calc(47px + env(safe-area-inset-bottom));width:153px;display:grid;grid-template-columns:repeat(3,1fr);gap:3px;pointer-events:auto}
+ .dock .speedSwitch button{min-height:30px;font-size:.65rem;background:#e1e8e1df}
+ #mobileJoystick{display:block;position:fixed;z-index:12;right:31px;bottom:calc(89px + env(safe-area-inset-bottom));width:110px;height:110px;border-radius:50%;border:2px solid #eaf5f1b0;background:#c9d9d169;box-shadow:0 0 0 7px #e4eee942;touch-action:none;user-select:none}
+ #joystickKnob{position:absolute;left:50%;top:50%;width:43px;height:43px;margin:-21.5px;border-radius:50%;background:#284e53a8;border:2px solid #f1f8f1c9;pointer-events:none}
+ .sourcesDrawer{left:0;bottom:36px;z-index:21}
+ .helpPopover{right:8px;bottom:calc(220px + env(safe-area-inset-bottom));z-index:22}
+ .dock .cameraControls{bottom:calc(85px + env(safe-area-inset-bottom))}
+ .dock .speedSwitch{bottom:calc(86px + env(safe-area-inset-bottom))}
+ #mobileJoystick{bottom:calc(125px + env(safe-area-inset-bottom))}
+}
