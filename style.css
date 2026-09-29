@@ -166,6 +166,14 @@ button,input,select,.badge,.status,.compass,.mapbox,.mapSourceNotice,.observer-l
 .dock #dockToggle{min-width:70px;height:26px;padding:2px 6px;font-size:.72rem}
 .dock.closed #dockToggle{min-width:70px}
 @media(max-width:700px){.dock,.dock:not(.closed){width:min(5cm,calc(100vw - 14px))}.dock .sliderLane{height:100px}.dock .cameraControls input,.dock .cameraControls input#height,.dock .cameraControls input#tilt,.dock .cameraControls input#fov{width:90px}.dock .move{grid-template-rows:repeat(2,minmax(0,1fr))}}
+.routeDock{position:fixed;left:calc(var(--drawer-width,370px) + 14px);bottom:16px;z-index:18;max-width:min(370px,calc(100vw - var(--drawer-width,370px) - 28px));font:italic 13px "Times New Roman",serif;color:#173d41}
+.routeDock button,.routeDock select,.routeDock input{border:1px solid #7d9995;border-radius:0;background:#e5ece6;color:#173d41;font:inherit;padding:5px 8px;cursor:pointer}
+.route-leaflet{display:grid;place-items:center;border:2px solid #174b50;border-radius:50%;background:#fff5d8;color:#174b50;font:700 11px system-ui;box-sizing:border-box;box-shadow:0 1px 4px #173b3d77}
+.route-leaflet.selected{background:#f6a928;border-width:3px}
+.routeDock button:disabled{opacity:.55;cursor:default}.routeDock #routeToggle{background:#214b51;color:#fff;min-height:30px}
+.routeDock #routePanel{margin-top:4px;padding:8px;background:#edf2ebed;border:1px solid #829b97;box-shadow:0 3px 15px #12373d40}
+.routeDock .routeActions{display:flex;align-items:center;gap:4px;margin-bottom:5px;flex-wrap:wrap}.routeDock .routeActions:last-of-type{margin-bottom:4px}.routeDock label{white-space:nowrap}.routeDock small{display:block;font-size:11px;line-height:1.2;margin-top:4px}.routeDock #routeSelect{max-width:185px}.routeDock #routeName{width:245px;max-width:calc(100vw - 145px);box-sizing:border-box}.routeMode .route-leaflet{cursor:pointer}
+@media(max-width:700px){.routeDock{left:8px;bottom:70px;max-width:min(290px,calc(100vw - 16px))}.routeDock #routePanel{max-width:calc(100vw - 34px)}.mapbox.mobile-open~.routeDock{display:none}}
 .compassRose{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;transform:rotate(var(--compass-angle,0deg));transform-origin:center}
 .compassRose span{margin:1px 0 0}
 #mobileMapToggle,#mobileJoystick{display:none}
@@ -220,4 +228,14 @@ button,input,select,.badge,.status,.compass,.mapbox,.mapSourceNotice,.observer-l
  .dock .cameraControls{bottom:calc(85px + env(safe-area-inset-bottom))}
  .dock .speedSwitch{bottom:calc(86px + env(safe-area-inset-bottom))}
  #mobileJoystick{bottom:calc(125px + env(safe-area-inset-bottom))}
+}
+/* Sources belong to the expanded top controls, not to the bottom of the view. */
+.yearPanel .sourcesDrawer{position:relative;left:auto;right:auto;bottom:auto;z-index:auto;width:100%;margin:7px 0 0;padding:0;border-top:1px solid #8b9d96;background:transparent;box-shadow:none;color:#111}
+.yearPanel .sourcesDrawer summary,.yearPanel .sourcesDrawer[open] summary{width:100%;box-sizing:border-box;margin:0;padding:6px 9px;border:1px solid #879a92;background:#e3e9df;color:#111;text-align:left;font-size:.74rem}
+.yearPanel .sourcesDrawer .details{max-height:40vh;overflow:auto;padding:9px 12px 13px;background:#f4f0e5;color:#111}
+.yearPanel .sourcesDrawer .details p,.yearPanel .sourcesDrawer .details strong{color:#111}
+.yearPanel .sourcesDrawer .details a{color:#173e72}
+@media(min-width:701px){
+ .dock{bottom:calc(1cm + env(safe-area-inset-bottom))}
+ .routeDock{bottom:calc(1cm + env(safe-area-inset-bottom));z-index:19}
 }

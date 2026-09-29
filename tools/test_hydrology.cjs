@@ -1,7 +1,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path'),zlib=require('node:zlib');
 const root=path.resolve(__dirname,'..'),window={},context={window,atob,Float32Array,Uint32Array,Uint8Array,Map,Math,Number};
 for(const f of ['hydrology-mesh','surface-index','structures'])vm.runInNewContext(fs.readFileSync(path.join(root,'assets',f+'.js'),'utf8'),context);
-const m=window.HYDROLOGY_MESH,{SurfaceIndex}=window.HYDRO_SURFACES,decode=(name,Type)=>{const b=zlib.gunzipSync(Buffer.from(m[name],'base64'));return new Type(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength))},p=decode('positions',Float32Array),idx=decode('indices',Uint32Array),w=decode('waterPositions',Float32Array),wi=decode('waterIndices',Uint32Array);
+const m=window.HYDROLOGY_MESH,{SurfaceIndex}=window.HYDRO_SURFACES,decode=(name,Type)=>{const b=zlib.gunzipSync(m[name+'Url']?fs.readFileSync(path.join(root,m[name+'Url'])):Buffer.from(m[name],'base64'));return new Type(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength))},p=decode('positions',Float32Array),idx=decode('indices',Uint32Array),w=decode('waterPositions',Float32Array),wi=decode('waterIndices',Uint32Array);
 const terrain=new SurfaceIndex(p,idx),water=new SurfaceIndex(w,wi);let seed=42;function random(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296}
 let missed=0,maxSubmersion=0,minWetDepth=Infinity;
 for(let i=0;i<30000;i++){const x=-25000+random()*60000,z=-26000+random()*60000,h=terrain.sample(x,z);if(!Number.isFinite(h))missed++}

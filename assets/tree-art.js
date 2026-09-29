@@ -2,7 +2,7 @@
 // tree; bark and leaves occupy separate textures so seasonal color/visibility
 // changes do not regenerate the forest or its geometry.
 (() => {
-  const tileW=160, tileH=192, variants=3, kinds=5;
+  const tileW=160, tileH=192, variants=3, kinds=6;
   function random(seed){let state=seed>>>0;return()=>{state^=state<<13;state^=state>>>17;state^=state<<5;return(state>>>0)/4294967296}}
   function stroke(ctx,a,b,width,color){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.quadraticCurveTo((a[0]+b[0])/2+(b[0]-a[0])*.12,(a[1]+b[1])/2,b[0],b[1]);ctx.stroke()}
   function tuft(ctx,x,y,rx,ry,rng,conifer){
@@ -13,6 +13,17 @@
   }
   function makeTree(wood,leaf,kind,variant){
     const rng=random(0x9e3779b9+kind*4099+variant*137),ox=variant*tileW,cx=ox+tileW/2,base=tileH;
+    if(kind===5){
+      // Low, irregular shrubs use the same two-layer seasonal atlas as trees.
+      // Several loose leaf clusters keep gaps visible between the stems.
+      for(let stem=0;stem<7;stem++){
+        const foot=cx+(rng()-.5)*48,tipX=cx+(rng()-.5)*104,tipY=49+rng()*47;
+        stroke(wood,[foot,base],[tipX,tipY],1.5+rng()*1.5,'#777165');
+        tuft(leaf,tipX,tipY,15+rng()*13,16+rng()*16,rng,false);
+        if(stem%2===0)tuft(leaf,(foot+tipX)*.5,111+rng()*23,16+rng()*10,14+rng()*9,rng,false);
+      }
+      return;
+    }
     const tops=[18,8,22][variant],lean=(rng()-.5)*7,tip=cx+lean,top=kind===1?tops+16:tops;
     wood.fillStyle=kind===4?'#e8e8df':kind===3?'#87847e':kind===0?'#8a8780':kind===2?'#55493d':'#68594b';
     wood.beginPath();wood.moveTo(cx-4.5,base);wood.lineTo(cx+4.5,base);wood.lineTo(tip+1.5,top);wood.lineTo(tip-1.5,top);wood.closePath();wood.fill();
