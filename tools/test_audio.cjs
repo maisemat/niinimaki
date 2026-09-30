@@ -9,6 +9,9 @@ for(const phase of [0,.12,.47,.77]){
  assert.ok(Math.abs(shape.splitEnvelope(phase,6,-.045,1,1)-original)<1e-12,'default dev mix must preserve the original sound');
 }
 assert.ok(Math.abs(shape.splitEnvelope(0,6,0,1,0)-shape.splitEnvelope(.5,6,0,1,0))<1e-12,'steady control should remove blade pulses');
+assert.ok(Math.abs(shape.advanceCycle(2.98,2.98,.02,1)-3.02)<1e-12,'normal rotor cycle must pass seamlessly through wrap');
+assert.ok(Math.abs(shape.advanceCycle(2.98,2.98,.02,2)-3.06)<1e-12,'speed control must double the swish rate without a wrap jump');
+assert.equal(shape.advanceCycle(.02,3.06,.02,.5),3.06,'moving the speed slider must not jump the sound phase');
 
 for(const depth of [1,3,5,7]){
  let power=0,min=Infinity,max=0;

@@ -79,19 +79,22 @@ const scenery=window.addScenery(scene,height,originE,originN,M||G,infrastructure
 const towerMat=new THREE.MeshStandardMaterial({color:0xdce4e7,metalness:.22,roughness:.68}),nacelleMat=new THREE.MeshStandardMaterial({color:0xe9edef,metalness:.15,roughness:.6}),bladeMat=new THREE.MeshStandardMaterial({color:0xe3e8eb,metalness:.07,roughness:.72,side:THREE.DoubleSide});const towerGeo=new THREE.CylinderGeometry(2.2,6.5,180,10),nacelleGeo=new THREE.BoxGeometry(15,8,20);const bladeShape=new THREE.Shape();bladeShape.moveTo(-3,0);bladeShape.lineTo(-6,25);bladeShape.lineTo(-5,65);bladeShape.lineTo(-1.1,99);bladeShape.lineTo(1,100);bladeShape.lineTo(3,65);bladeShape.lineTo(4,25);bladeShape.lineTo(3,0);bladeShape.closePath();const bladeGeo=new THREE.ExtrudeGeometry(bladeShape,{depth:1,bevelEnabled:false});const turbines=[];
 for(const t of G.turbines){const p=local(t.e,t.n),h=height(t.e,t.n),group=new THREE.Group();group.position.set(p.x,h,p.z);group.rotation.y=Math.PI-windDegrees*Math.PI/180;const tower=new THREE.Mesh(towerGeo,towerMat);tower.position.y=90;tower.castShadow=true;group.add(tower);const nacelle=new THREE.Mesh(nacelleGeo,nacelleMat);nacelle.position.set(0,180,0);nacelle.castShadow=true;group.add(nacelle);const rotor=new THREE.Group();rotor.position.set(0,180,11);rotor.rotation.z=turbines.length*.43;for(let b=0;b<3;b++){const blade=new THREE.Mesh(bladeGeo,bladeMat);blade.rotation.z=b*Math.PI*2/3;blade.castShadow=true;rotor.add(blade)}const hub=new THREE.Mesh(new THREE.SphereGeometry(3.3,12,8),nacelleMat);hub.castShadow=true;rotor.add(hub);group.add(rotor);scene.add(group);turbines.push({t,rotor,group})}
 const windAudio=window.createWindAudio(G.turbines);
-const audioDevFields=[['devSteady','devSteadyText','steadyDb',v=>`${v} dB`],['devSwoosh','devSwooshText','swooshDb',v=>`${v} dB`],['devTone','devToneText','swooshTone',v=>`${(v/100).toFixed(2).replace('.',',')}×`],['devLowMix','devLowMixText','lowMix',v=>`${v} %`],['devLowLevel','devLowLevelText','lowDb',v=>`${v} dB`]];
-const audioDevDefaults={steadyDb:0,swooshDb:0,swooshTone:1,lowMix:.55,lowDb:0};
+const audioDevFields=[['devSteady','devSteadyText','steadyDb',v=>`${v} dB`],['devSwoosh','devSwooshText','swooshDb',v=>`${v} dB`],['devTone','devToneText','swooshTone',v=>`${(v/100).toFixed(2).replace('.',',')}×`],['devSpeed','devSpeedText','swooshSpeed',v=>`${(v/100).toFixed(2).replace('.',',')}×`],['devLowpass','devLowpassText','swooshLowpassHz',v=>`${Math.round(100*80**(v/100))} Hz`],['devLowMix','devLowMixText','lowMix',v=>`${v} %`],['devLowLevel','devLowLevelText','lowDb',v=>`${v} dB`]];
+const audioDevDefaults={steadyDb:0,swooshDb:0,swooshTone:1,swooshSpeed:1,swooshLowpassHz:8000,lowMix:.55,lowDb:0};
+function audioDevRaw(key,value){return key==='swooshLowpassHz'?100*Math.log(Math.max(100,value)/100)/Math.log(80):['swooshTone','swooshSpeed','lowMix'].includes(key)?value*100:value}
+function audioDevValue(key,raw){return key==='swooshLowpassHz'?Math.round(100*80**(raw/100)):['swooshTone','swooshSpeed','lowMix'].includes(key)?raw/100:raw}
 function storedAudioDev(key,fallback){try{const value=JSON.parse(localStorage.getItem(key));return value??fallback}catch{return fallback}}
 const audioDevSpots=storedAudioDev('niinimaki-audio-test-spots-v1',[]);
 function updateAudioDevCount(){el('devSpotCount').textContent=`${audioDevSpots.length} ${audioDevSpots.length===1?'koepaikka':'koepaikkaa'}`}
 function applyAudioDev(settings){
  const values={...audioDevDefaults,...settings};
- for(const [id,out,key,format] of audioDevFields){const input=el(id),raw=key==='swooshTone'?values[key]*100:key==='lowMix'?values[key]*100:values[key];input.value=String(raw);el(out).textContent=format(Number(input.value))}
- windAudio.setTuning(values);
+ const normalized={};
+ for(const [id,out,key,format] of audioDevFields){const input=el(id);input.value=String(audioDevRaw(key,values[key]));const raw=Number(input.value);el(out).textContent=format(raw);normalized[key]=audioDevValue(key,raw)}
+ windAudio.setTuning(normalized);
 }
 applyAudioDev(storedAudioDev('niinimaki-audio-tuning-v1',audioDevDefaults));updateAudioDevCount();
 for(const [id,out,key,format] of audioDevFields)el(id).addEventListener('input',()=>{
- const raw=Number(el(id).value),value=key==='swooshTone'||key==='lowMix'?raw/100:raw;
+ const raw=Number(el(id).value),value=audioDevValue(key,raw);
  windAudio.setTuning({[key]:value});el(out).textContent=format(raw);
  localStorage.setItem('niinimaki-audio-tuning-v1',JSON.stringify(windAudio.tuning));
 });

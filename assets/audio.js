@@ -91,13 +91,18 @@ const WIND_AUDIO_SHAPE=(()=>{
   }
   return referenceRms*Math.sqrt(power);
  }
- return{envelope,splitEnvelope,parkLowRms,bladePassHz,rotorAngularSpeed,bladeCycle,modulationDepth,bandTiming,bandFilter,filterFrequency,audibleBands};
+ function advanceCycle(previousPhysical,audioCycle,physicalCycle,speed){
+  if(previousPhysical===null)return physicalCycle;
+  const delta=physicalCycle-previousPhysical;
+  return audioCycle+(delta-Math.round(delta))*speed;
+ }
+ return{envelope,splitEnvelope,parkLowRms,advanceCycle,bladePassHz,rotorAngularSpeed,bladeCycle,modulationDepth,bandTiming,bandFilter,filterFrequency,audibleBands};
 })();
 window.WIND_AUDIO_SHAPE=WIND_AUDIO_SHAPE;
 window.createWindAudio=function(turbines){
  let context=null,limiter=null,voices=[],turbinesPlaying=false,ambientPlaying=false,lastUpdate=0,bandRms=[],ambient=null;
  let parkLow=null,parkLowPending=false;
- const tuning={steadyDb:0,swooshDb:0,swooshTone:1,lowMix:.55,lowDb:0};
+ const tuning={steadyDb:0,swooshDb:0,swooshTone:1,swooshSpeed:1,swooshLowpassHz:8000,lowMix:.55,lowDb:0};
  let speechBuffer=null,speech=null,speechPlaying=false,speechPending=false,speechRequest=0;
  // The active speech in puhevertailu.mp3 is normalized to 0.07 A-weighted
  // digital RMS. Assigning it the illustrative 60 dB(A) conversation anchor
@@ -138,12 +143,13 @@ window.createWindAudio=function(turbines){
   };
   ambient={mix:ambientMix,low:makeAmbientBand(500,1.17),leaves:makeAmbientBand(2000,2.39)};
   voices=turbines.map((t,i)=>{
-   const source=context.createBufferSource(),pulse=context.createGain(),pan=context.createStereoPanner(),bands=[],filters=[];
+   const source=context.createBufferSource(),pulse=context.createGain(),pan=context.createStereoPanner(),swooshLowpass=context.createBiquadFilter(),bands=[],swooshBands=[],filters=[];
    source.buffer=buffer;source.loop=true;pulse.gain.value=0;pulse.connect(pan).connect(limiter);
+   swooshLowpass.type='lowpass';swooshLowpass.frequency.value=8000;swooshLowpass.Q.value=Math.SQRT1_2;swooshLowpass.connect(pulse);
    for(const frequency of window.WIND_ACOUSTICS.frequencies){
-    const filter=context.createBiquadFilter(),gain=context.createGain(),spec=WIND_AUDIO_SHAPE.bandFilter(frequency);filter.type='bandpass';filter.frequency.value=Math.min(spec.center,context.sampleRate*.42);filter.Q.value=spec.q;gain.gain.value=0;source.connect(filter).connect(gain).connect(pulse);bands.push(gain);filters.push(filter);
+    const filter=context.createBiquadFilter(),gain=context.createGain(),swooshGain=context.createGain(),spec=WIND_AUDIO_SHAPE.bandFilter(frequency);filter.type='bandpass';filter.frequency.value=Math.min(spec.center,context.sampleRate*.42);filter.Q.value=spec.q;gain.gain.value=0;swooshGain.gain.value=0;source.connect(filter);filter.connect(gain).connect(pulse);filter.connect(swooshGain).connect(swooshLowpass);bands.push(gain);swooshBands.push(swooshGain);filters.push(filter);
    }
-   source.start(0,i*.347);return{source,pulse,pan,bands,filters,t};
+   source.start(0,i*.347);return{source,pulse,pan,bands,swooshBands,swooshLowpass,filters,t,lastPhysicalCycle:null,audioCycle:0};
   });
  }
  async function loadParkLow(){
@@ -159,10 +165,11 @@ window.createWindAudio=function(turbines){
    }
    const rms=Math.sqrt(power/count);
    if(!Number.isFinite(rms)||rms<.00001)throw Error('Äänitteen matala osuus on tyhjä');
-   const source=context.createBufferSource(),gain=context.createGain();
+   const source=context.createBufferSource(),filter=context.createBiquadFilter(),gain=context.createGain();
    source.buffer=buffer;source.loop=true;gain.gain.value=0;
-   source.connect(gain).connect(limiter);source.start();
-   parkLow={source,gain,rms};
+   filter.type='lowpass';filter.frequency.value=8000;filter.Q.value=Math.SQRT1_2;
+   source.connect(filter).connect(gain).connect(limiter);source.start();
+   parkLow={source,filter,gain,rms};
   }catch(error){console.warn('Matalan äänitteen lataus epäonnistui; käytetään synteesiä.',error)}
   finally{parkLowPending=false}
  }
@@ -224,16 +231,20 @@ window.createWindAudio=function(turbines){
   if(parkLow){
    const target=sampleActive?WIND_AUDIO_SHAPE.parkLowRms(result.sources,window.WIND_ACOUSTICS.aWeight,referenceRms,referenceDb):0;
    const gain=target*Math.sqrt(sampleShare)*10**(tuning.lowDb/20)/parkLow.rms;
+   parkLow.filter.frequency.setTargetAtTime(Math.min(context.sampleRate*.42,tuning.swooshLowpassHz),context.currentTime,.06);
    parkLow.gain.gain.setTargetAtTime(Math.min(.18,Math.max(0,gain)),context.currentTime,.16);
   }
   for(let i=0;i<voices.length;i++){
    const voice=voices[i],source=result.sources[i];
-   if(!turbinesPlaying||!source||!phase||windSpeed<3){voice.pulse.gain.setTargetAtTime(0,context.currentTime,.035);continue}
+   if(!turbinesPlaying||!source||!phase||windSpeed<3){voice.pulse.gain.setTargetAtTime(0,context.currentTime,.035);voice.lastPhysicalCycle=null;continue}
    const de=voice.t.e-observer.e,dn=voice.t.n-observer.n,bearing=Math.atan2(de,dn),relative=bearing-yaw;
    // Follow the actual animated rotor angle. Sound is delayed by the travel
    // time from that turbine to the listener, so the nine swishes do not align.
    const now=context.currentTime;
-   const cycle=WIND_AUDIO_SHAPE.bladeCycle(rotors[i]?.rotor.rotation.z||0,source.distance,windSpeed,i);
+   const physicalCycle=WIND_AUDIO_SHAPE.bladeCycle(rotors[i]?.rotor.rotation.z||0,source.distance,windSpeed,i);
+   voice.audioCycle=WIND_AUDIO_SHAPE.advanceCycle(voice.lastPhysicalCycle,voice.audioCycle,physicalCycle,tuning.swooshSpeed);
+   voice.lastPhysicalCycle=physicalCycle;
+   const cycle=voice.audioCycle;
    const windTo=((environment.windFrom??270)+180)*Math.PI/180;
    const receiverBearing=Math.atan2(observer.e-voice.t.e,observer.n-voice.t.n);
    // Field studies find AM directivity, but its exact curve is turbine- and
@@ -241,14 +252,16 @@ window.createWindAudio=function(turbines){
    const crosswind=Math.abs(Math.sin(receiverBearing-windTo));
    const depthVariation=(.85+.3*crosswind)*(.9+.1*Math.sin(now*.23+i*1.71));
    const audibleBands=WIND_AUDIO_SHAPE.audibleBands(source.bands,window.WIND_ACOUSTICS.aWeight);
+   voice.swooshLowpass.frequency.setTargetAtTime(Math.min(context.sampleRate*.42,tuning.swooshLowpassHz),now,.06);
    for(let b=0;b<voice.bands.length;b++){
     const frequency=window.WIND_ACOUSTICS.frequencies[b];
     const depth=WIND_AUDIO_SHAPE.modulationDepth(frequency,source.distance)*depthVariation;
-    const shaped=WIND_AUDIO_SHAPE.splitEnvelope(cycle,depth,WIND_AUDIO_SHAPE.bandTiming(frequency),10**(tuning.steadyDb/20),10**(tuning.swooshDb/20));
+    const trough=WIND_AUDIO_SHAPE.envelope(.5,depth),current=WIND_AUDIO_SHAPE.envelope(cycle,depth,WIND_AUDIO_SHAPE.bandTiming(frequency));
     // The average digital energy follows the A-weighted propagation result;
     // headphones and the speech reference still do not establish ear SPL.
-    const amplitude=referenceRms/bandRms[b]*Math.pow(10,(audibleBands[b]-referenceDb)/20)*shaped*(b<2?Math.sqrt(1-sampleShare):1);
-    voice.bands[b].gain.setTargetAtTime(Math.min(.12,Math.max(0,amplitude)),now,.025);
+    const amplitude=referenceRms/bandRms[b]*Math.pow(10,(audibleBands[b]-referenceDb)/20)*(b<2?Math.sqrt(1-sampleShare):1);
+    voice.bands[b].gain.setTargetAtTime(Math.min(.12,Math.max(0,amplitude*trough*10**(tuning.steadyDb/20))),now,.025);
+    voice.swooshBands[b].gain.setTargetAtTime(Math.min(.12,Math.max(0,amplitude*(current-trough)*10**(tuning.swooshDb/20))),now,.025);
     if(frequency===63||frequency===125||frequency===250||frequency===500)voice.filters[b].frequency.setTargetAtTime(Math.min(context.sampleRate*.42,WIND_AUDIO_SHAPE.filterFrequency(frequency,cycle,i)*(frequency===63?1:tuning.swooshTone)),now,.035);
    }
    voice.pulse.gain.setTargetAtTime(1,now,.06);
