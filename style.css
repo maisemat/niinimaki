@@ -234,11 +234,14 @@ button,input,select,.badge,.status,.compass,.mapbox,.mapSourceNotice,.observer-l
 .yearPanel .sourcesDrawer summary,.yearPanel .sourcesDrawer[open] summary{width:100%;box-sizing:border-box;margin:0;padding:6px 9px;border:1px solid #879a92;background:#e3e9df;color:#111;text-align:left;font-size:.74rem}
 .yearPanel .sourcesDrawer .details{max-height:40vh;overflow:auto;padding:9px 12px 13px;background:#f4f0e5;color:#111}
 .yearPanel .sourcesDrawer .details p,.yearPanel .sourcesDrawer .details strong{color:#111}
+.yearPanel .sourcesDrawer .details ul{margin:0;padding-left:1.3em}
+.yearPanel .sourcesDrawer .details li{margin:0 0 .55em}
 .yearPanel .sourcesDrawer .details a{color:#173e72}
 @media(min-width:701px){
  .dock{bottom:calc(1cm + env(safe-area-inset-bottom))}
  .routeDock{bottom:calc(1cm + env(safe-area-inset-bottom));z-index:19}
 }
+
 .audioDev{border-top:1px solid #b3bfba;margin-top:5px;color:#17383b;font-size:.72rem}
 .audioDev summary{padding:5px 7px;background:#e3e9df;color:#17383b;font-size:.73rem}
 .audioDevGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;padding:7px 4px}
@@ -249,3 +252,19 @@ button,input,select,.badge,.status,.compass,.mapbox,.mapSourceNotice,.observer-l
 .audioDevActions button{border:1px solid #79908a;background:#e1e7dd;color:#183b3e;padding:3px 6px;font-size:.7rem}
 .audioDev>small{display:block;padding:2px 4px 7px;line-height:1.35}
 @media(max-width:700px){.audioDevGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.audioCurveIntro{padding:6px 4px 2px;line-height:1.35}
+.audioCurves{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:5px 4px 9px}
+.audioCurveCard{min-width:0;padding:6px;background:#e6ebe5;border:1px solid #91a9a4}
+.audioCurveCard strong,.audioCurveCard span{display:block;text-align:center}
+.audioCurveCard span{font-size:.63rem}
+.audioCurveCard output{display:block;min-height:1.2em;text-align:center;font-size:.65rem;font-weight:bold}
+.audioCurveCard svg{display:block;width:100%;max-height:175px;touch-action:none;user-select:none;overflow:visible;background:#f5f3ec}
+.audioCurveCard svg text{font:11px Georgia,serif;fill:#25484c;pointer-events:none}
+.audioCurveCard .curveGrid{stroke:#c1cec9;stroke-width:1}
+.audioCurveCard .curveGrid.zero{stroke:#607e7d;stroke-width:1.5}
+.audioCurveCard .curveLine{fill:none;stroke:#235dc9;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.audioCurveCard circle{fill:#f5f3ec;stroke:#235dc9;stroke-width:3;cursor:ns-resize}
+.audioCurveCard circle:focus{stroke:#c34e3c;outline:none}
+#devCopyFallback{display:block;width:calc(100% - 8px);height:80px;margin:3px 4px 8px;font:11px monospace}
+#devCopyFallback[hidden]{display:none}
+@media(max-width:900px){.audioCurves{grid-template-columns:1fr}.audioCurveCard svg{max-height:155px}}

@@ -80,11 +80,11 @@ const towerMat=new THREE.MeshStandardMaterial({color:0xdce4e7,metalness:.22,roug
 for(const t of G.turbines){const p=local(t.e,t.n),h=height(t.e,t.n),group=new THREE.Group();group.position.set(p.x,h,p.z);group.rotation.y=Math.PI-windDegrees*Math.PI/180;const tower=new THREE.Mesh(towerGeo,towerMat);tower.position.y=90;tower.castShadow=true;group.add(tower);const nacelle=new THREE.Mesh(nacelleGeo,nacelleMat);nacelle.position.set(0,180,0);nacelle.castShadow=true;group.add(nacelle);const rotor=new THREE.Group();rotor.position.set(0,180,11);rotor.rotation.z=turbines.length*.43;for(let b=0;b<3;b++){const blade=new THREE.Mesh(bladeGeo,bladeMat);blade.rotation.z=b*Math.PI*2/3;blade.castShadow=true;rotor.add(blade)}const hub=new THREE.Mesh(new THREE.SphereGeometry(3.3,12,8),nacelleMat);hub.castShadow=true;rotor.add(hub);group.add(rotor);scene.add(group);turbines.push({t,rotor,group})}
 const windAudio=window.createWindAudio(G.turbines);
 const audioDevFields=[['devSteady','devSteadyText','steadyDb',v=>`${v} dB`],['devSwoosh','devSwooshText','swooshDb',v=>`${v} dB`],['devTone','devToneText','swooshTone',v=>`${(v/100).toFixed(2).replace('.',',')}×`],['devSpeed','devSpeedText','swooshSpeed',v=>`${(v/100).toFixed(2).replace('.',',')}×`],['devLowpass','devLowpassText','swooshLowpassHz',v=>`${Math.round(100*80**(v/100))} Hz`],['devLowMix','devLowMixText','lowMix',v=>`${v} %`],['devLowLevel','devLowLevelText','lowDb',v=>`${v} dB`]];
-const audioDevDefaults={steadyDb:0,swooshDb:0,swooshTone:1,swooshSpeed:1,swooshLowpassHz:8000,lowMix:.55,lowDb:0};
+const audioDevDefaults={steadyDb:0,swooshDb:0,swooshTone:1,swooshSpeed:1,swooshLowpassHz:8000,lowMix:0,lowDb:0};
 function audioDevRaw(key,value){return key==='swooshLowpassHz'?100*Math.log(Math.max(100,value)/100)/Math.log(80):['swooshTone','swooshSpeed','lowMix'].includes(key)?value*100:value}
 function audioDevValue(key,raw){return key==='swooshLowpassHz'?Math.round(100*80**(raw/100)):['swooshTone','swooshSpeed','lowMix'].includes(key)?raw/100:raw}
 function storedAudioDev(key,fallback){try{const value=JSON.parse(localStorage.getItem(key));return value??fallback}catch{return fallback}}
-const audioDevSpots=storedAudioDev('niinimaki-audio-test-spots-v1',[]);
+const audioDevSpots=storedAudioDev('niinimaki-audio-test-spots-v3',[]);
 function updateAudioDevCount(){el('devSpotCount').textContent=`${audioDevSpots.length} ${audioDevSpots.length===1?'koepaikka':'koepaikkaa'}`}
 function applyAudioDev(settings){
  const values={...audioDevDefaults,...settings};
@@ -92,28 +92,56 @@ function applyAudioDev(settings){
  for(const [id,out,key,format] of audioDevFields){const input=el(id);input.value=String(audioDevRaw(key,values[key]));const raw=Number(input.value);el(out).textContent=format(raw);normalized[key]=audioDevValue(key,raw)}
  windAudio.setTuning(normalized);
 }
-applyAudioDev(storedAudioDev('niinimaki-audio-tuning-v1',audioDevDefaults));updateAudioDevCount();
+applyAudioDev(storedAudioDev('niinimaki-audio-tuning-v3',audioDevDefaults));updateAudioDevCount();
+const audioCurveDefaults=window.WIND_AUDIO_SHAPE.defaultDistanceCurves;
+const audioCurveDistances=window.WIND_AUDIO_SHAPE.curveDistances;
+const audioCurveNames={steady:'Tasainen ääni',swoosh:'Humahdus',recording:'Valinnainen tallenne'};
+windAudio.setDistanceCurves(storedAudioDev('niinimaki-audio-curves-v1',audioCurveDefaults));
+const audioCurveRoot=el('audioCurves');
+const curveX=distance=>32+310*Math.log1p(distance/500)/Math.log1p(12000/500);
+const curveBaseDb=distance=>-20*Math.log10(Math.max(100,distance)/100);
+const curveY=db=>12+(20-db)/90*112;
+function saveAudioCurves(){localStorage.setItem('niinimaki-audio-curves-v1',JSON.stringify(windAudio.distanceCurves))}
+function renderAudioCurve(svg,key){
+ const values=windAudio.distanceCurves[key],points=values.map((db,i)=>`${curveX(audioCurveDistances[i]).toFixed(1)},${curveY(curveBaseDb(audioCurveDistances[i])+db).toFixed(1)}`).join(' ');
+ const lines=[-60,-40,-20,0,20].map(db=>`<line x1="32" y1="${curveY(db)}" x2="342" y2="${curveY(db)}" class="curveGrid${db===0?' zero':''}"/><text x="27" y="${curveY(db)+3}" text-anchor="end">${db>0?'+':''}${db}</text>`).join('');
+ const marks=values.map((db,i)=>`<circle data-i="${i}" cx="${curveX(audioCurveDistances[i]).toFixed(1)}" cy="${curveY(curveBaseDb(audioCurveDistances[i])+db).toFixed(1)}" r="7" tabindex="0"><title>${(audioCurveDistances[i]/1000).toLocaleString('fi-FI')} km: kuuntelukorjaus ${db>0?'+':''}${db} dB</title></circle><text x="${curveX(audioCurveDistances[i]).toFixed(1)}" y="150" text-anchor="middle">${(audioCurveDistances[i]/1000).toLocaleString('fi-FI')}</text>`).join('');
+ svg.innerHTML=`${lines}<polyline points="${points}" class="curveLine"/>${marks}`;
+}
+for(const key of ['steady','swoosh','recording']){
+ const card=document.createElement('div');card.className='audioCurveCard';
+ card.innerHTML=`<strong>${audioCurveNames[key]}</strong><svg viewBox="0 0 355 158" role="img" aria-label="${audioCurveNames[key]}: etäisyys myllystä kilometreinä vaakasuunnassa, suhteellinen kuuntelutaso desibeleinä pystysuunnassa"></svg><span>Etäisyys myllystä (km) → · suhteellinen taso (dB) ↑</span><output>Valitse piste nähdäksesi korjauksen</output>`;
+ audioCurveRoot.append(card);const svg=card.querySelector('svg');let active=-1;renderAudioCurve(svg,key);
+ const showValue=i=>{const db=windAudio.distanceCurves[key][i];card.querySelector('output').textContent=`${(audioCurveDistances[i]/1000).toLocaleString('fi-FI')} km: ${db>0?'+':''}${db} dB malliin nähden`};
+ svg.addEventListener('pointerdown',event=>{const node=event.target.closest('circle[data-i]');if(!node)return;active=Number(node.dataset.i);showValue(active);svg.setPointerCapture(event.pointerId);event.preventDefault()});
+ svg.addEventListener('pointermove',event=>{if(active<0)return;const rect=svg.getBoundingClientRect();const y=(event.clientY-rect.top)*158/rect.height;const displayDb=20-(y-12)*90/112;const db=Math.round(Math.max(-24,Math.min(18,displayDb-curveBaseDb(audioCurveDistances[active]))));const values=[...windAudio.distanceCurves[key]];values[active]=db;windAudio.setDistanceCurves({[key]:values});renderAudioCurve(svg,key);showValue(active)});
+ const finish=()=>{if(active>=0){active=-1;saveAudioCurves()}};
+ svg.addEventListener('pointerup',finish);svg.addEventListener('pointercancel',finish);
+ svg.addEventListener('keydown',event=>{const node=event.target.closest('circle[data-i]');if(!node||!['ArrowUp','ArrowDown'].includes(event.key))return;const values=[...windAudio.distanceCurves[key]];const i=Number(node.dataset.i);values[i]=Math.max(-24,Math.min(18,values[i]+(event.key==='ArrowUp'?1:-1)));windAudio.setDistanceCurves({[key]:values});renderAudioCurve(svg,key);showValue(i);saveAudioCurves();svg.querySelector(`circle[data-i="${i}"]`)?.focus();event.preventDefault()});
+}
 for(const [id,out,key,format] of audioDevFields)el(id).addEventListener('input',()=>{
  const raw=Number(el(id).value),value=audioDevValue(key,raw);
  windAudio.setTuning({[key]:value});el(out).textContent=format(raw);
- localStorage.setItem('niinimaki-audio-tuning-v1',JSON.stringify(windAudio.tuning));
+ localStorage.setItem('niinimaki-audio-tuning-v3',JSON.stringify(windAudio.tuning));
 });
-el('devReset').addEventListener('click',()=>{applyAudioDev(audioDevDefaults);localStorage.setItem('niinimaki-audio-tuning-v1',JSON.stringify(audioDevDefaults))});
+el('devReset').addEventListener('click',()=>{applyAudioDev(audioDevDefaults);localStorage.setItem('niinimaki-audio-tuning-v3',JSON.stringify(audioDevDefaults));windAudio.setDistanceCurves(audioCurveDefaults);for(const [i,key] of ['steady','swoosh','recording'].entries()){renderAudioCurve(audioCurveRoot.querySelectorAll('svg')[i],key);audioCurveRoot.querySelectorAll('output')[i].textContent='Valitse piste nähdäksesi korjauksen'}saveAudioCurves()});
+function currentAudioSettings(){return{description:'Kuuntelukokeen säädöt; distanceCurves-arvot ovat dB-korjauksia lasketun etenemisarvion jälkeen, eivät mitattuja äänenpainetasoja. Kuvan laskeva perusviiva on havainnollistava 1/r-referenssi.',curveDistancesM:audioCurveDistances,tuning:{...windAudio.tuning},distanceCurves:Object.fromEntries(Object.entries(windAudio.distanceCurves).map(([key,values])=>[key,[...values]])),observer:{e:Math.round(observer.e),n:Math.round(observer.n),heightM:viewerHeight},nearestTurbineM:Math.round(Math.min(...G.turbines.map(t=>Math.hypot(t.e-observer.e,t.n-observer.n)))),modelDbA:acousticResult(true).level,date:el('date').value,time:el('timeText').textContent,phase:projectPhase,windFromDeg:windDegrees,windSpeedMs:Number(el('windSpeed').value),temperatureC:Number(el('temperature').value),humidityPct:Number(el('humidity').value)}}
+el('devCopy').addEventListener('click',async()=>{const value=JSON.stringify(currentAudioSettings(),null,2);try{await navigator.clipboard.writeText(value);el('devCopyStatus').textContent='Asetukset kopioitu.'}catch{const box=el('devCopyFallback');box.hidden=false;box.value=value;box.select();el('devCopyStatus').textContent='Kopioi valittu teksti.'}});
 el('devSaveSpot').addEventListener('click',()=>{
  const result=acousticResult(true),nearest=Math.min(...G.turbines.map(t=>Math.hypot(t.e-observer.e,t.n-observer.n)));
- audioDevSpots.push({e:Math.round(observer.e),n:Math.round(observer.n),heightM:viewerHeight,windFromDeg:windDegrees,windSpeedMs:Number(el('windSpeed').value),temperatureC:Number(el('temperature').value),humidityPct:Number(el('humidity').value),date:el('date').value,time:el('timeText').textContent,phase:projectPhase,nearestTurbineM:Math.round(nearest),modelDbA:result.level,tuning:{...windAudio.tuning}});
- localStorage.setItem('niinimaki-audio-test-spots-v1',JSON.stringify(audioDevSpots));updateAudioDevCount();
+ audioDevSpots.push({e:Math.round(observer.e),n:Math.round(observer.n),heightM:viewerHeight,windFromDeg:windDegrees,windSpeedMs:Number(el('windSpeed').value),temperatureC:Number(el('temperature').value),humidityPct:Number(el('humidity').value),date:el('date').value,time:el('timeText').textContent,phase:projectPhase,nearestTurbineM:Math.round(nearest),modelDbA:result.level,tuning:{...windAudio.tuning},distanceCurves:currentAudioSettings().distanceCurves});
+ localStorage.setItem('niinimaki-audio-test-spots-v3',JSON.stringify(audioDevSpots));updateAudioDevCount();
 });
 el('devExport').addEventListener('click',()=>{
- const data={description:'Niinimäen äänen koesäädöt; dB(A) on laskennallinen arvio, liu’ut ovat kuuntelusäätöjä',sample:'myl13.wav, koko puiston äänite, alle 250 Hz yhteinen kerros',spots:audioDevSpots};
+ const data={...currentAudioSettings(),sample:'myl13.wav, koko puiston äänite, alle 250 Hz yhteinen kerros',spots:audioDevSpots};
  const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'})),link=document.createElement('a');link.href=url;link.download='niinimaki-aanen-koepaikat.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
 const soundBuildings=window.WIND_ACOUSTICS.createBuildingIndex(window.STRUCTURES?.buildings||[]);
 function soundTerrain(e,n){const value=mml.sampleOverview(e,n);return Number.isFinite(value)?value:height(e,n)}
 function soundCanopy(e,n){const canopy=window.CANOPY,i=Math.floor((e-canopy.eMin)/canopy.step),j=Math.floor((canopy.nMax-n)/canopy.step);if(i<0||i>=canopy.cols||j<0||j>=canopy.rows||window.LANDCOVER.inWater(e,n)||window.LANDCOVER.inField(e,n))return 0;return canopyMask[j*canopy.cols+i]||0}
-let lastAcousticResult=null,lastAcousticAt=-Infinity;
-function acousticResult(force=false){const now=performance.now();if(!force&&lastAcousticResult&&now-lastAcousticAt<180)return lastAcousticResult;lastAcousticAt=now;
- lastAcousticResult=window.WIND_ACOUSTICS.evaluate({observer:{e:observer.e,n:observer.n,height:viewerHeight},turbines:G.turbines,terrain:soundTerrain,canopy:soundCanopy,building:soundBuildings,water:window.LANDCOVER.inWater,cleared:projectPhase?infrastructure.cleared:null,windFrom:windDegrees,windSpeed:Number(el('windSpeed').value),temperature:Number(el('temperature').value),humidity:Number(el('humidity').value)/100,phase:projectPhase});return lastAcousticResult}
+let lastAcousticResult=null,lastAcousticAt=-Infinity,lastAcousticDetail=false;
+function acousticResult(force=false){const now=performance.now(),bladeDetail=windAudio.isPlaying();if(!force&&lastAcousticResult&&lastAcousticDetail===bladeDetail&&now-lastAcousticAt<180)return lastAcousticResult;lastAcousticAt=now;lastAcousticDetail=bladeDetail;
+ lastAcousticResult=window.WIND_ACOUSTICS.evaluate({observer:{e:observer.e,n:observer.n,height:viewerHeight},turbines:G.turbines,terrain:soundTerrain,canopy:soundCanopy,building:soundBuildings,water:window.LANDCOVER.inWater,cleared:projectPhase?infrastructure.cleared:null,windFrom:windDegrees,windSpeed:Number(el('windSpeed').value),temperature:Number(el('temperature').value),humidity:Number(el('humidity').value)/100,phase:projectPhase,bladeDetail});return lastAcousticResult}
 let projectPhase=1;function applyProjectPhase(){for(const t of turbines)t.group.visible=projectPhase===1;infrastructure.setPhase(projectPhase);scenery.setProjectPhase(projectPhase);document.querySelectorAll('[data-phase]').forEach(b=>{const active=Number(b.dataset.phase)===projectPhase;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active))});updateObserver()}
 const obsMarker=new THREE.Group();const ring=new THREE.Mesh(new THREE.RingGeometry(14,21,36),new THREE.MeshBasicMaterial({color:0x64e2ed,side:THREE.DoubleSide,transparent:true,opacity:.95}));ring.rotation.x=-Math.PI/2;obsMarker.add(ring);const stem=new THREE.Mesh(new THREE.CylinderGeometry(1,1,32,8),new THREE.MeshBasicMaterial({color:0x64e2ed}));stem.position.y=16;obsMarker.add(stem);scene.add(obsMarker);
 const routeStorageKey='niinimaki-camera-routes-v3';
@@ -149,7 +177,7 @@ function updateAcousticMetrics(force=false){const result=acousticResult(force),n
  el('soundText').textContent=projectPhase===0?'Ei voimaloita':Number(el('windSpeed').value)<3?'Voimalat pysähtyneet*':nearest<300?'Lähialue: ei arviota*':result.level<15?'hyvin vaimea*':`≈ ${result.level.toFixed(0)} dB(A)*`;
  el('soundText').title='Suuntaa antava etenemisarvio 107,8 dB(A) ilmoitetulla ääniteholla. Hankkeen selvityksen +2 dB lähtöarvolisä ei ole tämän arvion kokonaisepävarmuus.';
  el('info').textContent=`${window.LANDCOVER.bodyAt(observer.e,observer.n)?'Veneessä · ':window.LANDCOVER.inWater(observer.e,observer.n)?'Puron kohdalla · ':''}Lähin voimala ${formatDistance(nearest)} päässä`}
-function updateObserver(){const p=local(observer.e,observer.n);obsMarker.position.set(p.x,height(observer.e,observer.n)+3,p.z);updateAcousticMetrics();el('coords').textContent=`E ${Math.round(observer.e)} · N ${Math.round(observer.n)}`;drawMap();updateSun()}
+function updateObserver(){const p=local(observer.e,observer.n);obsMarker.position.set(p.x,height(observer.e,observer.n)+3,p.z);updateAcousticMetrics();el('coords').textContent=`E ${Math.round(observer.e)} · N ${Math.round(observer.n)}`;drawObserverMarker();updateSun()}
 const FIN='+proj=utm +zone=35 +ellps=GRS80 +units=m +no_defs';function finnishOffset(y,m,d,hour){const lastSunday=(year,month)=>{const a=new Date(Date.UTC(year,month+1,0));return a.getUTCDate()-a.getUTCDay()};const start=lastSunday(y,2),end=lastSunday(y,9);return (m>3&&m<10)||(m===3&&(d>start||(d===start&&hour>=3)))||(m===10&&(d<end||(d===end&&hour<4)))?3:2}
 function selectedDate(){const v=el('date').value||'2026-06-21';let [Y,M,D]=v.split('-').map(Number);M=clamp(M,1,12);D=clamp(D,1,31);const hour=Math.floor(timeMinutes/60),offset=finnishOffset(Y,M,D,hour);return new Date(Date.UTC(Y,M-1,D,hour-offset,timeMinutes%60))}
 function updateSun(){const [lon,lat]=proj4(FIN,'EPSG:4326',[observer.e,observer.n]),a=SunCalc.getPosition(selectedDate(),lat,lon);const alt=a.altitude,az=a.azimuth;const sx=-Math.sin(az),sz=Math.cos(az),sy=Math.tan(Math.max(.035,alt));const norm=Math.hypot(sx,sy,sz);sun.position.set(5000+sx/norm*6500,300+sy/norm*6500,4000+sz/norm*6500);sun.target.position.set(5000,130,4000);sun.target.updateMatrixWorld();sun.visible=alt>0;hemi.intensity=alt<-.1?.12:alt<.09?.2:.28;sun.intensity=alt>0?clamp(.72+Math.sin(alt)*1.05,.72,1.65):0;scene.background.set(alt<-.1?0x203946:alt<.09?0x657f91:0x91bdcd);scene.fog.color.copy(scene.background);el('sunText').textContent=alt>0?`${Math.round(THREE.MathUtils.radToDeg(alt))}° korkeudella`:'horisontin alla';el('timeText').textContent=`${String(Math.floor(timeMinutes/60)).padStart(2,'0')}.${String(timeMinutes%60).padStart(2,'0')}`;el('time').value=String(timeMinutes);updateSeason()}
@@ -270,9 +298,10 @@ function routePose(p){
  updateTerrainDetail(observer.e,observer.n);const point=local(observer.e,observer.n);camera.position.set(point.x,walkingHeight(observer.e,observer.n),point.z);obsMarker.position.set(point.x,height(observer.e,observer.n)+3,point.z);
  scenery.updateLocalTrees(observer.e,observer.n);el('coords').textContent=`E ${Math.round(observer.e)} · N ${Math.round(observer.n)}`;updateCameraView();
  const fx=(observer.e-extent.eMin)/(extent.eMax-extent.eMin),fy=(extent.nMax-observer.n)/(extent.nMax-extent.nMin);
- if(osmActive){const q=osmMap.latLngToContainerPoint(observerLatLng()),size=osmMap.getSize();if(q.x<size.x*.12||q.x>size.x*.88||q.y<size.y*.12||q.y>size.y*.88)osmMap.panTo(observerLatLng(),{animate:false})}
- else if(fx<.12||fx>.88||fy<.12||fy>.88)centerMapOnObserver();
- if(performance.now()-lastMapRefresh>90){drawMap();lastMapRefresh=performance.now()}
+  if(osmActive){const q=osmMap.latLngToContainerPoint(observerLatLng()),size=osmMap.getSize();if(q.x<size.x*.12||q.x>size.x*.88||q.y<size.y*.12||q.y>size.y*.88)osmMap.panTo(observerLatLng(),{animate:false})}
+  const recenter=!osmActive&&(fx<.12||fx>.88||fy<.12||fy>.88);
+  if(recenter)centerMapOnObserver();
+  if(recenter||performance.now()-lastMapRefresh>90){if(recenter)drawMap();else drawObserverMarker();lastMapRefresh=performance.now()}
 }
 function routeAngle(a,b,t){return a+Math.atan2(Math.sin(b-a),Math.cos(b-a))*t}
 function advanceRoute(dt){

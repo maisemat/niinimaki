@@ -31,4 +31,8 @@ assert.ok(hill.level<open.level,'ridge screens path');
 assert.ok(Number.isFinite(at(1000,1.7,{temperature:-15,humidity:.3}).level));
 assert.equal(at(1000,1.7,{phase:0}).sources.length,0);
 assert.equal(at(1000,1.7,{windSpeed:2}).level,-Infinity,'turbines stop below cut-in wind speed');
+const detailed=at(1000,1.7,{bladeDetail:true});
+approx(detailed.level,at(1000).level,1e-9);
+assert.equal(detailed.sources[0].bladeHeightDb.lower.length,model.frequencies.length);
+assert.ok(detailed.sources[0].bladePathDistance.upper>0,'blade-tip travel distance should change with source height');
 console.log('Acoustic propagation checks passed');

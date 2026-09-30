@@ -47,4 +47,33 @@ assert.ok(Math.abs(shape.rotorAngularSpeed(8,4)*3/(2*Math.PI)-shape.bladePassHz(
 const cycle=shape.bladeCycle(.4,1200,8,4);
 assert.ok(Math.abs(shape.bladeCycle(.4+2*Math.PI/3,1200,8,4)-cycle-1)<1e-12,'one blade passage must be one sound cycle');
 assert.ok(Math.abs(shape.bladeCycle(.4+shape.rotorAngularSpeed(8,4),1200,8,4)-cycle-shape.bladePassHz(8,4))<1e-12,'sound rate must follow rotor speed');
+const profile=model.evaluate({observer:{e:1000,n:0,height:1.7},turbines:[{e:0,n:0}],terrain:e=>e>450&&e<550?80:0,windSpeed:8,bladeDetail:true}).sources[0];
+assert.ok(profile.bladeHeightDb.lower[2]<profile.bladeHeightDb.upper[2]-1,'lower blade should be more screened behind the ridge');
+const moving=shape.movingBladeTable(6,0,profile,2,shape.bladePassHz(8,0));
+const flat=shape.movingBladeTable(6,0,null,2,shape.bladePassHz(8,0));
+let movingPower=0,shapeDifference=0;
+let previousDifference=0;
+for(let i=0;i<2000;i++){
+ const time=i/2000,a=shape.sampleMovingBlade(moving,time),b=shape.sampleMovingBlade(flat,time);
+ movingPower+=a*a/2000;shapeDifference+=Math.abs(a-b)/2000;
+ previousDifference+=Math.abs(a-shape.envelope(time,6))/2000;
+}
+assert.ok(Math.abs(movingPower-1)<.005,'moving blades must preserve the predicted mean acoustic energy');
+assert.ok(shapeDifference>.01,'source-height propagation should alter the swish shape');
+assert.ok(previousDifference>.01,'moving-blade synthesis should differ from the old hub-height envelope');
+assert.ok(Math.abs(shape.sampleMovingBlade(moving,0)-shape.sampleMovingBlade(moving,1))<1e-10,'blade-pass waveform must wrap seamlessly');
+assert.equal(shape.distanceGainDb(shape.defaultDistanceCurves.steady,3000),0);
+assert.equal(shape.distanceGainDb(shape.defaultDistanceCurves.swoosh,3000),4);
+assert.equal(shape.distanceGainDb(shape.defaultDistanceCurves.swoosh,2250),3,'distance gain must interpolate between knots');
+assert.equal(shape.distanceGainDb(shape.defaultDistanceCurves.swoosh,20000),7,'distance gain must hold its far endpoint');
+context.document={getElementById:()=>({addEventListener(){}})};
+const audio=context.window.createWindAudio([{e:0,n:0}]);
+assert.equal(audio.getModel,undefined,'old sound-model selection must be removed');
+assert.equal(audio.distanceCurves.swoosh[4],6,'the distant swish preset must be present');
+audio.setDistanceCurves({swoosh:[0,1,2,3,4,5]});
+assert.equal(audio.distanceCurves.swoosh[3],3);
+audio.setDistanceCurves({swoosh:[1,2]});
+assert.equal(audio.distanceCurves.swoosh[3],3,'incomplete curves must be ignored');
+audio.setDistanceCurves({swoosh:[0,1,2,3,4,100]});
+assert.equal(audio.distanceCurves.swoosh[5],18,'curve edits must be bounded');
 console.log('Audio auralization checks passed');

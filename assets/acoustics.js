@@ -32,9 +32,9 @@
   }
   return(e,n)=>{for(const item of cells.get(Math.floor(e/cellSize)+','+Math.floor(n/cellSize))||[])if(pointInPolygon(e,n,item.points))return item.height;return 0};
  }
- function pathEffects(observer,turbine,terrain,canopy,building,cleared,water){
+ function pathEffects(observer,turbine,terrain,canopy,building,cleared,water,sourceHeight=hubHeight){
   const dx=observer.e-turbine.e,dn=observer.n-turbine.n,horizontal=Math.hypot(dx,dn);
-  const sourceY=terrain(turbine.e,turbine.n)+hubHeight,receiverY=terrain(observer.e,observer.n)+observer.height;
+  const sourceY=terrain(turbine.e,turbine.n)+sourceHeight,receiverY=terrain(observer.e,observer.n)+observer.height;
   const direct=Math.hypot(horizontal,sourceY-receiverY),steps=clamp(Math.ceil(horizontal/40),8,180);
   let forestMetres=0,waterMetres=0,crest=null,buildingCrest=null;
   for(let i=1;i<steps;i++){
@@ -57,7 +57,7 @@
   }
   return{horizontal,direct,forestMetres,waterMetres,terrainScreen:diffraction(crest),buildingScreen:diffraction(buildingCrest)};
  }
- function evaluate({observer,turbines,terrain,canopy=()=>0,building=()=>0,water=()=>false,cleared=null,windFrom=270,windSpeed=8,temperature=15,humidity=.70,phase=1}){
+ function evaluate({observer,turbines,terrain,canopy=()=>0,building=()=>0,water=()=>false,cleared=null,windFrom=270,windSpeed=8,temperature=15,humidity=.70,phase=1,bladeDetail=false}){
   const nearest=Math.min(...turbines.map(t=>Math.hypot(t.e-observer.e,t.n-observer.n)));
   if(!phase)return{level:-Infinity,upper:-Infinity,nearest,sources:[]};
   const air=frequencies.map(f=>airDbPerKm(f,temperature,humidity)),sources=[];
@@ -68,7 +68,7 @@
    // profiles are not published in the project data available here.
    const operation=windSpeed<3?-Infinity:clamp((windSpeed-8)*1.1,-6,0);
    const windEffect=alignment>=0?alignment*clamp(windSpeed/8,0,1.4):alignment*clamp(windSpeed/8,0,1.4)*3;
-   const bands=sourceBands.map((lw,i)=>{
+   const bandsForPath=path=>sourceBands.map((lw,i)=>{
     // Forest only attenuates where the source-to-ear ray passes through it.
     // Low frequencies are barely affected; forest never acts as a mute switch.
     const forest=Math.min(8,path.forestMetres*[.0001,.0003,.001,.0025,.005,.009,.012,.014][i]);
@@ -76,7 +76,19 @@
     const ground=(i<2?1:0)+path.waterMetres/Math.max(path.horizontal,1)*[1.4,2.9,2.5,1.5,.7,0,0,0][i]; // bounded reflection allowance
     return lw+operation-spreading-air[i]*path.direct/1000+windEffect+ground-screen-forest;
    });
-   sources.push({turbine,level:sumDb(bands),bands,distance:path.direct,forestMetres:path.forestMetres,terrainScreen:path.terrainScreen,buildingScreen:path.buildingScreen});
+   const bands=bandsForPath(path);
+   // Only while listening, sample the paths from the lowest and highest
+   // blade-tip positions. The sound renderer interpolates these responses
+   // over the rotation and preserves the hub-level mean energy.
+   let bladeHeightDb=null,bladePathDistance=null;
+   if(bladeDetail){
+    const lowerPath=pathEffects(observer,turbine,terrain,canopy,building,cleared,water,hubHeight-100);
+    const upperPath=pathEffects(observer,turbine,terrain,canopy,building,cleared,water,hubHeight+100);
+    const lower=bandsForPath(lowerPath),upper=bandsForPath(upperPath);
+    bladeHeightDb={lower:lower.map((value,i)=>clamp(value-bands[i],-12,12)),upper:upper.map((value,i)=>clamp(value-bands[i],-12,12))};
+    bladePathDistance={lower:lowerPath.direct-path.direct,upper:upperPath.direct-path.direct};
+   }
+   sources.push({turbine,level:sumDb(bands),bands,distance:path.direct,forestMetres:path.forestMetres,terrainScreen:path.terrainScreen,buildingScreen:path.buildingScreen,bladeHeightDb,bladePathDistance});
   }
   const level=sumDb(sources.map(source=>source.level));
   return{level,upper:level+reportMargin,nearest,sources};
