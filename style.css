@@ -239,3 +239,13 @@ button,input,select,.badge,.status,.compass,.mapbox,.mapSourceNotice,.observer-l
  .dock{bottom:calc(1cm + env(safe-area-inset-bottom))}
  .routeDock{bottom:calc(1cm + env(safe-area-inset-bottom));z-index:19}
 }
+.audioDev{border-top:1px solid #b3bfba;margin-top:5px;color:#17383b;font-size:.72rem}
+.audioDev summary{padding:5px 7px;background:#e3e9df;color:#17383b;font-size:.73rem}
+.audioDevGrid{display:grid;grid-template-columns:repeat(5,minmax(90px,1fr));gap:8px;padding:7px 4px}
+.audioDevGrid label{display:flex;flex-direction:column;gap:2px;min-width:0}
+.audioDevGrid output{font-weight:bold}
+.audioDevGrid input{width:100%;margin:0}
+.audioDevActions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:0 4px 5px}
+.audioDevActions button{border:1px solid #79908a;background:#e1e7dd;color:#183b3e;padding:3px 6px;font-size:.7rem}
+.audioDev>small{display:block;padding:2px 4px 7px;line-height:1.35}
+@media(max-width:700px){.audioDevGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}

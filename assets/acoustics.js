@@ -66,7 +66,7 @@
    const toward=Math.atan2(observer.e-turbine.e,observer.n-turbine.n),windTo=(windFrom+180)*Math.PI/180,alignment=Math.cos(toward-windTo);
    // Bounded estimates: exact V172 operating modes and vertical weather
    // profiles are not published in the project data available here.
-   const operation=windSpeed<3?-16:clamp((windSpeed-8)*1.1,-6,0);
+   const operation=windSpeed<3?-Infinity:clamp((windSpeed-8)*1.1,-6,0);
    const windEffect=alignment>=0?alignment*clamp(windSpeed/8,0,1.4):alignment*clamp(windSpeed/8,0,1.4)*3;
    const bands=sourceBands.map((lw,i)=>{
     // Forest only attenuates where the source-to-ear ray passes through it.

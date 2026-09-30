@@ -30,4 +30,5 @@ const hill=at(1000,1.7,{terrain:e=>e>470&&e<530?130:0});
 assert.ok(hill.level<open.level,'ridge screens path');
 assert.ok(Number.isFinite(at(1000,1.7,{temperature:-15,humidity:.3}).level));
 assert.equal(at(1000,1.7,{phase:0}).sources.length,0);
+assert.equal(at(1000,1.7,{windSpeed:2}).level,-Infinity,'turbines stop below cut-in wind speed');
 console.log('Acoustic propagation checks passed');
