@@ -8,10 +8,10 @@
  // report's A-weighted band figures contain +2 dB and sum to 109.8 dB(A). Niinimäki's
  // report uses a V172 7.2 MW serrated reference but does not tabulate bands.
  const publishedBands=[91.8,98.8,103.4,102.4,103.0,101.9,100.3,87.5];
- const nominalPower=107.8,reportMargin=2,hubHeight=194;
+ const nominalPower=107.8,reportMargin=2,hubHeight=194,rotorRadius=86;
  const clamp=(value,low,high)=>Math.max(low,Math.min(high,value));
  function sumDb(levels){return levels.length?10*Math.log10(levels.reduce((sum,level)=>sum+10**(level/10),0)):-Infinity}
- const sourceBands=publishedBands.map(level=>nominalPower+level-sumDb(publishedBands)); // A-weighted bands
+ const sourceBands=publishedBands.map(level=>nominalPower+reportMargin+level-sumDb(publishedBands)); // A-weighted bands
  // ISO 9613-1 atmospheric absorption equation at 101.325 kPa.
  function airDbPerKm(f,temperature=15,humidity=.70){
   const T=temperature+273.15,tr=T/293.15;
@@ -57,43 +57,78 @@
   }
   return{horizontal,direct,forestMetres,waterMetres,terrainScreen:diffraction(crest),buildingScreen:diffraction(buildingCrest)};
  }
- function evaluate({observer,turbines,terrain,canopy=()=>0,building=()=>0,water=()=>false,cleared=null,windFrom=270,windSpeed=8,temperature=15,humidity=.70,phase=1,bladeDetail=false}){
+ function evaluate({observer,turbines,terrain,canopy=()=>0,building=()=>0,water=()=>false,cleared=null,windFrom=270,windSpeed=8,temperature=15,humidity=.70,phase=1,bladeDetail=false,reportReference=null,referenceConditions=false}){
   const nearest=Math.min(...turbines.map(t=>Math.hypot(t.e-observer.e,t.n-observer.n)));
-  if(!phase)return{level:-Infinity,upper:-Infinity,nearest,sources:[]};
+  if(!phase||windSpeed<3)return{level:-Infinity,upper:-Infinity,nearest,sources:[]};
   const air=frequencies.map(f=>airDbPerKm(f,temperature,humidity)),sources=[];
   for(const turbine of turbines){
-   const path=pathEffects(observer,turbine,terrain,canopy,building,cleared,water),spreading=20*Math.log10(Math.max(1,path.direct))+11;
+   const path=pathEffects(observer,turbine,terrain,canopy,building,cleared,water);
    const toward=Math.atan2(observer.e-turbine.e,observer.n-turbine.n),windTo=(windFrom+180)*Math.PI/180,alignment=Math.cos(toward-windTo);
    // Bounded estimates: exact V172 operating modes and vertical weather
    // profiles are not published in the project data available here.
    const operation=windSpeed<3?-Infinity:clamp((windSpeed-8)*1.1,-6,0);
-   const windEffect=alignment>=0?alignment*clamp(windSpeed/8,0,1.4):alignment*clamp(windSpeed/8,0,1.4)*3;
+   // The report assumes favourable propagation from every turbine at once.
+   // Directional changes may reduce this reference, never add a second
+   // downwind allowance on top of the report's conservative baseline.
+   const windEffect=referenceConditions?0:Math.min(0,alignment)*clamp(windSpeed/8,0,1.4)*3;
    const bandsForPath=path=>sourceBands.map((lw,i)=>{
     // Forest only attenuates where the source-to-ear ray passes through it.
     // Low frequencies are barely affected; forest never acts as a mute switch.
     const forest=Math.min(8,path.forestMetres*[.0001,.0003,.001,.0025,.005,.009,.012,.014][i]);
     const screen=Math.max(path.terrainScreen,path.buildingScreen)*[.08,.16,.3,.5,.7,1,1,1][i];
     const ground=(i<2?1:0)+path.waterMetres/Math.max(path.horizontal,1)*[1.4,2.9,2.5,1.5,.7,0,0,0][i]; // bounded reflection allowance
-    return lw+operation-spreading-air[i]*path.direct/1000+windEffect+ground-screen-forest;
+    return lw+operation-(20*Math.log10(Math.max(1,path.direct))+11)-air[i]*path.direct/1000+windEffect+ground-screen-forest;
    });
    const bands=bandsForPath(path);
+   const correction=reportReference?reportReference.correctionAt(observer.e,observer.n):0;
+   for(let i=0;i<bands.length;i++)bands[i]+=correction;
    // Only while listening, sample the paths from the lowest and highest
    // blade-tip positions. The sound renderer interpolates these responses
    // over the rotation and preserves the hub-level mean energy.
    let bladeHeightDb=null,bladePathDistance=null;
    if(bladeDetail){
-    const lowerPath=pathEffects(observer,turbine,terrain,canopy,building,cleared,water,hubHeight-100);
-    const upperPath=pathEffects(observer,turbine,terrain,canopy,building,cleared,water,hubHeight+100);
+    const lowerPath=pathEffects(observer,turbine,terrain,canopy,building,cleared,water,hubHeight-rotorRadius);
+    const upperPath=pathEffects(observer,turbine,terrain,canopy,building,cleared,water,hubHeight+rotorRadius);
     const lower=bandsForPath(lowerPath),upper=bandsForPath(upperPath);
-    bladeHeightDb={lower:lower.map((value,i)=>clamp(value-bands[i],-12,12)),upper:upper.map((value,i)=>clamp(value-bands[i],-12,12))};
+    bladeHeightDb={lower:lower.map((value,i)=>clamp(value+correction-bands[i],-12,12)),upper:upper.map((value,i)=>clamp(value+correction-bands[i],-12,12))};
     bladePathDistance={lower:lowerPath.direct-path.direct,upper:upperPath.direct-path.direct};
    }
-   sources.push({turbine,level:sumDb(bands),bands,distance:path.direct,forestMetres:path.forestMetres,terrainScreen:path.terrainScreen,buildingScreen:path.buildingScreen,bladeHeightDb,bladePathDistance});
+   sources.push({turbine,level:sumDb(bands),bands,distance:path.direct,receiverBearing:toward,forestMetres:path.forestMetres,terrainScreen:path.terrainScreen,buildingScreen:path.buildingScreen,bladeHeightDb,bladePathDistance});
   }
   const level=sumDb(sources.map(source=>source.level));
-  return{level,upper:level+reportMargin,nearest,sources};
+  return{level,upper:level,nearest,sources,reportAnchored:!!reportReference};
  }
- const api={frequencies,aWeight,sourceBands,nominalPower,reportMargin,airDbPerKm,createBuildingIndex,evaluate};
+ // Etha, Niinimäki noise report 18 Aug 2026, appendix 1, table 7.
+ // These are calculated receptor levels, not recordings or local measurements.
+ const reportReceptors=[
+  ['A',343040,6762065,34.6],['B',344002,6760793,36.7],
+  ['C',345153,6760227,38.0],['D',346023,6759726,38.0],
+  ['E',347694,6758471,33.4],['F',348165,6758328,32.3],
+  ['G',349502,6760597,35.6],['H',350357,6761674,32.7],
+  ['I',349961,6761959,34.6],['J',350336,6764248,29.3],
+  ['K',347227,6763759,37.3],['L',346288,6763718,37.3]
+ ];
+ function createReportReference(turbines,terrain,water=()=>false){
+  // Compare at the report's 4 m receiver height, 8 m/s, 15 C, RH 70%,
+  // without added tree/building shielding. Interpolate the residual smoothly;
+  // outside the published receptors only the propagation formula extrapolates.
+  // This anchors the demonstration, it does not recreate the WindPRO contour.
+  const anchors=reportReceptors.map(([id,e,n,level])=>{
+   const reference=evaluate({observer:{e,n,height:4},turbines,terrain,water,
+    windSpeed:8,temperature:15,humidity:.70,referenceConditions:true});
+   return{id,e,n,level,referenceLevel:reference.level,correction:level-reference.level};
+  });
+  const regional=anchors.reduce((sum,p)=>sum+p.correction,0)/anchors.length;
+  function correctionAt(e,n){
+   let weight=0,sum=0,nearest=Infinity;
+   for(const point of anchors){const distance=Math.hypot(e-point.e,n-point.n);if(distance<.01)return point.correction;
+    const w=1/(distance*distance);weight+=w;sum+=w*point.correction;nearest=Math.min(nearest,distance)}
+   const local=sum/weight,blend=clamp((nearest-3000)/3000,0,1);
+   return local*(1-blend)+regional*blend;
+  }
+  return{anchors,correctionAt,regional};
+ }
+ const api={reportReceptors,createReportReference,frequencies,aWeight,sourceBands,nominalPower,reportMargin,airDbPerKm,createBuildingIndex,evaluate};
  if(typeof module!=='undefined'&&module.exports)module.exports=api;
  root.WIND_ACOUSTICS=api;
 })(typeof window!=='undefined'?window:globalThis);

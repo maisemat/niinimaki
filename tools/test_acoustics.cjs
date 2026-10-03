@@ -5,7 +5,7 @@ const base={turbines:[turbine],terrain:()=>0,windFrom:270,windSpeed:8,temperatur
 const at=(e,height=1.7,extra={})=>model.evaluate({...base,observer:{e,n:0,height},...extra});
 const approx=(actual,wanted,tolerance=.02)=>assert.ok(Math.abs(actual-wanted)<tolerance,`${actual} != ${wanted}`);
 const sourceSum=10*Math.log10(model.sourceBands.reduce((sum,db)=>sum+10**(db/10),0));
-approx(sourceSum,107.8);
+approx(sourceSum,109.8);
 approx(model.airDbPerKm(63),.11,.02);
 approx(model.airDbPerKm(125),.38,.03);
 assert.ok(at(2000).level<at(1000).level-5,'distance should attenuate');
@@ -36,3 +36,15 @@ approx(detailed.level,at(1000).level,1e-9);
 assert.equal(detailed.sources[0].bladeHeightDb.lower.length,model.frequencies.length);
 assert.ok(detailed.sources[0].bladePathDistance.upper>0,'blade-tip travel distance should change with source height');
 console.log('Acoustic propagation checks passed');
+
+// Independent published fixtures: Etha 18.8.2026, appendix 1 table 7.
+const fs=require('node:fs'),vm=require('node:vm'),zlib=require('node:zlib');
+const globals={window:{}};vm.runInNewContext(fs.readFileSync(require.resolve('../assets/data.js'),'utf8'),globals);
+const raw=zlib.gunzipSync(fs.readFileSync(require.resolve('../assets/mml-dem/overview.bin.gz'))),dem=new Int16Array(raw.buffer,raw.byteOffset,raw.byteLength/2);
+const terrain=(e,n)=>{const x=(e-335001)/16,y=(6774999-n)/16,i=Math.floor(x),j=Math.floor(y),u=x-i,v=y-j,k=j*1500+i;return ((dem[k]*(1-u)+dem[k+1]*u)*(1-v)+(dem[k+1500]*(1-u)+dem[k+1501]*u)*v)/10};
+const turbines=globals.window.GEO.turbines,reference=model.createReportReference(turbines,terrain);
+const fixtures=[['A',343040,6762065,34.6],['B',344002,6760793,36.7],['C',345153,6760227,38],['D',346023,6759726,38],['E',347694,6758471,33.4],['F',348165,6758328,32.3],['G',349502,6760597,35.6],['H',350357,6761674,32.7],['I',349961,6761959,34.6],['J',350336,6764248,29.3],['K',347227,6763759,37.3],['L',346288,6763718,37.3]];
+for(const [id,e,n,level] of fixtures){const result=model.evaluate({observer:{e,n,height:4},turbines,terrain,windSpeed:8,temperature:15,humidity:.7,referenceConditions:true,reportReference:reference});approx(result.level,level,1e-8);assert.equal(result.sources.length,9);assert.ok(Math.abs(reference.anchors.find(p=>p.id===id).correction)<2,'underlying formula should already be close to report, not hidden by a large fit');}
+const a=model.evaluate({observer:{e:343424,n:6759709,height:1.7},turbines,terrain,windSpeed:8,windFrom:270,reportReference:reference}),b=model.evaluate({observer:{e:338067,n:6760042,height:1.7},turbines,terrain,windSpeed:8,windFrom:270,reportReference:reference});
+assert.ok(b.level<a.level-8,'published-reference fit must retain distant attenuation');
+console.log('All 12 published receptor levels verified; no double +2 dB margin');

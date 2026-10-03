@@ -62,18 +62,33 @@ assert.ok(Math.abs(movingPower-1)<.005,'moving blades must preserve the predicte
 assert.ok(shapeDifference>.01,'source-height propagation should alter the swish shape');
 assert.ok(previousDifference>.01,'moving-blade synthesis should differ from the old hub-height envelope');
 assert.ok(Math.abs(shape.sampleMovingBlade(moving,0)-shape.sampleMovingBlade(moving,1))<1e-10,'blade-pass waveform must wrap seamlessly');
-assert.equal(shape.distanceGainDb(shape.defaultDistanceCurves.steady,3000),0);
-assert.equal(shape.distanceGainDb(shape.defaultDistanceCurves.swoosh,3000),4);
-assert.equal(shape.distanceGainDb(shape.defaultDistanceCurves.swoosh,2250),3,'distance gain must interpolate between knots');
-assert.equal(shape.distanceGainDb(shape.defaultDistanceCurves.swoosh,20000),7,'distance gain must hold its far endpoint');
-context.document={getElementById:()=>({addEventListener(){}})};
-const audio=context.window.createWindAudio([{e:0,n:0}]);
-assert.equal(audio.getModel,undefined,'old sound-model selection must be removed');
-assert.equal(audio.distanceCurves.swoosh[4],6,'the distant swish preset must be present');
-audio.setDistanceCurves({swoosh:[0,1,2,3,4,5]});
-assert.equal(audio.distanceCurves.swoosh[3],3);
-audio.setDistanceCurves({swoosh:[1,2]});
-assert.equal(audio.distanceCurves.swoosh[3],3,'incomplete curves must be ignored');
-audio.setDistanceCurves({swoosh:[0,1,2,3,4,100]});
-assert.equal(audio.distanceCurves.swoosh[5],18,'curve edits must be bounded');
-console.log('Audio auralization checks passed');
+
+const levels=require('../assets/audio-levels.js');
+assert.ok(Math.abs(levels.aWeightDb(1000))<.01);
+const rate=48000,samples=new Float32Array(rate*4);let state=0x5ead123,pink=0;
+for(let i=0;i<samples.length;i++){state=(Math.imul(state,1664525)+1013904223)>>>0;const white=state/2147483648-1;pink=.965*pink+.035*white;samples[i]=.4*white+1.65*pink;}
+const cal=levels.calibrateNoise(samples,rate,shape,model.frequencies,shape.publicationProfile.tuning,9);
+const tone=new Float32Array(rate*2);for(let i=0;i<tone.length;i++)tone[i]=.1*Math.sin(2*Math.PI*1000*i/rate);
+const tonePower=levels.spectrum([tone],rate).reduce((sum,bin)=>sum+bin.aPower,0);
+assert.ok(Math.abs(10*Math.log10(tonePower/(.1**2/2)))<.15,'independent 1 kHz RMS fixture validates the A-weighted meter');
+const bandSteady=(distance)=>10**((8+shape.distanceGainDb(shape.defaultDistanceCurves.steady,distance))/20);
+const bandSwish=(distance)=>10**((12+shape.distanceGainDb(shape.defaultDistanceCurves.swoosh,distance))/20);
+assert.ok(bandSwish(1000)/bandSteady(1000)>1.8*bandSwish(500)/bandSteady(500),'0.5–1 km must shift clearly toward swish');
+const recording={rawRms:.15,weightedPower:.00005};
+for(const distance of [500,1000,1500,3000,6000,12000])for(const count of [1,9]){
+ const turbines=Array.from({length:count},(_,i)=>({e:i*50,n:0}));
+ const result=model.evaluate({observer:{e:distance,n:0,height:1.7},turbines,terrain:()=>0,windSpeed:8,windFrom:270});
+ for(const sample of [null,recording]){
+  const plan=levels.buildPlan(result,turbines,8,270,cal,sample,shape,model,shape.publicationProfile);
+  const fromAllLayers=plan.voices.reduce((sum,v)=>sum+v.meanPower,0)+plan.recordingPower;
+  const actualDb=60+10*Math.log10(fromAllLayers*plan.normalization**2/.07**2);
+  assert.ok(Math.abs(actualDb-result.level)<1e-9,'every layer must share the total report-based level');
+  if(sample)assert.ok(plan.recordingPower>0,'whole-park recording must be included in the budget');
+ }
+}
+context.document={getElementById:()=>({addEventListener(){}})};context.window.WIND_AUDIO_LEVELS=levels;context.window.WIND_ACOUSTICS=model;
+const audio=context.window.createWindAudio([{e:0,n:0}]);assert.equal(audio.setTuning,undefined);assert.equal(audio.setDistanceCurves,undefined);
+assert.equal(audio.estimateLevel({level:30}),30);
+const silent=model.evaluate({observer:{e:1000,n:0,height:1.7},turbines:[{e:0,n:0}],terrain:()=>0,phase:0});
+assert.equal(levels.buildPlan(silent,[],8,270,cal,recording,shape,model,shape.publicationProfile).targetPower,0);
+console.log('A-weighted full-mix budgets, 9-source sum, fixed preset and 0.5–1 km timbre transition passed');
