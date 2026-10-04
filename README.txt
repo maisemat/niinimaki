@@ -57,3 +57,5 @@ https://www.traficom.fi/fi/lentoliikenne-lentopaikat-ja-ymparisto/lentoesteet
 4.10.2026: yövalojen punainen hehku on aiempaa laajempi ja voimakkaampi, keskusta kirkkaampi. Päivävaloissa hehku säilyy hillitympänä. Hehkun näyttövaikutus on havainnollistava.
 
 4.10.2026: yön pimein vaihe tummenee vielä auringon ollessa -12°…-18° horisontin alla. Taivas, maa, puut ja vesi tummenevat asteittain; päivän, hämärän ja valoisan kesäyön sävyjä ei muuteta.
+
+4.10.2026: konehuoneen kattovalot ovat havainnollistavasti 2 m katon yläpuolella (aiemmin 1 m), jotta katto peittää niitä vähemmän alhaalta katsottaessa. Täsmällinen asennuskorkeus riippuu valitusta valaisimesta ja kiinnityksestä eikä ole hankkeen vahvistettu tieto. Nykyinen kirkas keskusta ja sisempi hehku säilyvät; niiden ympärillä on laajempi, himmeä ulkokehä. Yöllä hehkun kokonaisläpimitta on 1,5-kertainen aiempaan nähden. Syvyyspeitto ja kahden pisteryhmän kevyt toteutus säilyvät.
