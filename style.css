@@ -241,3 +241,21 @@ button,input,select,.badge,.status,.compass,.mapbox,.mapSourceNotice,.observer-l
  .dock{bottom:calc(1cm + env(safe-area-inset-bottom))}
  .routeDock{bottom:calc(1cm + env(safe-area-inset-bottom));z-index:19}
 }
+
+/* A shared draggable target overlays both the local map and Leaflet tiles. */
+.cameraFocusMarker{position:absolute;z-index:5;width:30px;height:30px;min-width:0;padding:0;transform:translate(-50%,-50%);border:3px solid #fff8e7;border-radius:50%!important;background:#b62d5c;box-shadow:0 0 0 2px #3a2030,0 2px 7px #10232a88;cursor:grab;touch-action:none;user-select:none}
+.cameraFocusMarker.dragging{cursor:grabbing}
+.dock .move #focusToggle{grid-column:1;grid-row:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:#d3dfd9;color:#1b4144;font-size:.57rem;line-height:1.05}
+.dock .move #focusToggle span{font-size:.53rem}
+.dock .move #focusToggle.active{background:#2d5e62;color:#fff}
+.dock .cameraControls input:disabled{opacity:.5;cursor:default}
+@media(max-width:700px){
+ .dock .move{display:contents}
+ .dock .move [data-move],.dock .move #helpToggle{display:none}
+ .dock .move #focusToggle{position:fixed;z-index:12;left:6px;bottom:calc(47px + env(safe-area-inset-bottom));width:104px;height:30px;flex-direction:row;gap:5px;font-size:.7rem;pointer-events:auto}
+ .dock .move #focusToggle span{font-size:.65rem}
+}
+
+/* Same compact controls as the rest of the expandable top panel. */
+#nightLightsToggle{flex:none;min-width:132px;min-height:25px;padding:3px 8px;border:1px solid #79908a;background:#e1e7dd;color:#183b3e;font-size:.72rem;white-space:nowrap}
+#nightLightsToggle[aria-pressed="true"]{background:#274e50;color:#fff}

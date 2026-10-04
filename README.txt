@@ -1,5 +1,5 @@
 NIINIMÄKI – EPÄVIRALLINEN 3D-HAVAINNOLLISTUS
-Päivitetty 1.10.2026 – julkaisuversio
+Päivitetty 4.10.2026 – julkaisuversio
 
 Avaa macOS:ssa tämän kansion ”Avaa-demo.command”. Työpöydän NIINIMÄKIDEMO-kansion oma käynnistin toimii myös. Se käynnistää paikallisen verkkopalvelimen ja avaa selaimen. Voit myös julkaista koko kansion tavallisella staattisella verkkopalvelimella. Säilytä index.html, app.js, style.css ja assets-kansio yhdessä. OpenStreetMapin karttatiilet tarvitsevat verkkoyhteyden; muut 3D-aineistot ovat mukana kansiossa.
 
@@ -39,3 +39,21 @@ Toiston taso tarkistetaan A-painotetulla digitaalisella energiabudjetilla. Siin�
 Lähteet: https://hattula-julkaisu.triplancloud.fi/ktwebscr/fileshow?docid=160146&doctype=3&version=1 ; https://www.iso.org/standard/74047.html ; https://doi.org/10.1016/j.renene.2022.07.161 ; https://doi.org/10.1121/10.0009658 ; https://doi.org/10.1051/aacus/2023018 .
 
 Lähdekirjastot: three.js 0.128.0, SunCalc 1.9.0 ja proj4js 2.12.1 (MIT). Pakattu hydrology-mesh.js on 21,5 Mt ja erillinen 25 m korkeusnäyte 1,5 Mt; kumpikin jää alle 25 Mt GitHub-rajan. Tarkistustiedosto hydrology-validation.json sisältää maaston verkon saumojen testituloksen. tools/test_hydrology.cjs tarkistaa verkon ja veden geometriaa. Demo ei ole kaavapäätöksen, mittauksen eikä vaikutusarvioinnin korvike.
+
+Keskipiste-painike lukitsee vain kameran vaakasuoran katsesuunnan voimaloiden alueen keskipisteeseen. Kallistusta voi säätää vapaasti liukusäätimellä, E/D-näppäimillä tai hiirellä myös lukituksen aikana. Kartan suurta täplää voi siirtää vetämällä myös tiedonsäästötilassa. Shift + sivunuolet kiertävät pistettä samalla vaakasuoralla etäisyydellä, ja ylös/alas lähestyy tai loittonee siitä. Pois-asennossa kameraa voi taas kääntää ja siirtää vapaasti.
+
+LENTOESTEVALOT JA YÖ
+Lähteet: Hattulan Niinimäen YVA-selostus 18.2.2025, luku 4.1.3 / sivu 12, ja Traficomin ohje 7.9.2020 (tarkistettu 4.10.2026). YVA toistaa ohjeen vaihtoehdot eikä nimeä lopullista yövalotyyppiä. Lentoestelupaa tai hyväksyttyä valoryhmittelyä ei ollut käytettävissä. Mallin oletus on C-tyypin jatkuva punainen yövalo kaikissa yhdeksässä voimalassa. Yläpaneelin Yövalot-painikkeesta voi vaihtaa B-tyypin vilkkuvaan punaiseen yövaloon; valinta säilyy tämän selaimen muistissa. Tornien kolmen välitason valot pysyvät jatkuvina. Ohje sallii yöllä myös vilkkuvan punaisen B-valon tai vilkkuvan valkoisen B-valon; todellinen lupapäätös voi täsmentää ratkaisun. Päivä: konehuoneen katolla kaksi valkoista B-valoa (yhteensä nimellisesti 100 000 cd). Hämärä: samat valot, yhteensä 20 000 cd. Yö: punainen 2 000 cd -luokan ratkaisu. 180 m tornissa havainnollistavat välitasot ovat 45, 90 ja 135 m, neljä jatkuvaa punaista pienitehoista B-valoa per taso. Pisteiden koko, kirkkaus ja valon hajonta näytöllä ovat visuaalisia arvioita eivätkä candela- tai näkyvyyslaskentaa. Näkyvyysanturin himmennystä tai lupaan perustuvaa ryhmittelyä ei oleteta.
+Valkoiset valot välähtävät yhteiseen tahtiin 50 kertaa minuutissa (ohjeellinen alue 40–60). Vilkkuminen seuraa todellista kulunutta aikaa eikä maiseman nopeutettua kelloa tai roottorien nopeutta. Ennen-vaiheessa valot poistuvat yhdessä voimaloiden kanssa. Maasto, puut ja rakenteet peittävät valot normaalin syvyystestin kautta; ne eivät paista esteiden läpi. Valot piirretään kahdella pienellä pisteryhmällä, ilman ylimääräisiä valonlähteitä, varjokarttoja tai koko ruudun jälkikäsittelyä.
+Päivän ja hämärän vaihtoa arvioidaan auringon korkeudesta (yövalot alle -6°); tämä ei ole todellisen valaisimen valoisuusanturi. Maisema tummenee asteittain erityisesti auringon laskiessa -6°…-12°: taivas, puusto, maa, tiet ja vesi tummenevat mutta pysyvät näkyvinä. Valoisa kesäyö ei muutu keinotekoisesti täydeksi pimeydeksi. Kuutamoa tai pilvisyyttä ei mallinneta.
+https://www.ymparisto.fi/sites/default/files/documents/Arviointiselostus%2C%20Niinim%C3%A4en%20tuulivoimahanke.pdf
+https://www.traficom.fi/files/media/file/Ohje%20tuulivoimaloiden%20p%C3%A4iv%C3%A4merkint%C3%A4%C3%A4n,%20lentoestevaloihin%20sek%C3%A4%20valojen%20ryhmitykseen_07SEP2020.pdf
+https://www.traficom.fi/fi/lentoliikenne-lentopaikat-ja-ymparisto/lentoesteet
+
+4.10.2026: lentoestevalojen pisteitä ja kirkasta keskustaa suurennettiin hieman. Erityisesti 45, 90 ja 135 m välitasojen valot näkyvät nyt selvemmin; ne ovat edelleen katolla olevia päävaloja pienemmät ja maasto sekä puut voivat peittää niitä. Kummankaan yövalovaihtoehdon valinta ei muuta valkoisia päivä- ja hämärävaloja.
+
+4.10.2026: lentoestevaloissa on pieni pehmeä hehku ja kirkkaampi keskusta. Hehku tehdään samoissa kahdessa pisteryhmässä, ilman erillistä koko ruudun bloom- tai varjolaskentaa. Valot noudattavat edelleen maaston ja kasvillisuuden syvyyspeittoa.
+
+4.10.2026: yövalojen punainen hehku on aiempaa laajempi ja voimakkaampi, keskusta kirkkaampi. Päivävaloissa hehku säilyy hillitympänä. Hehkun näyttövaikutus on havainnollistava.
+
+4.10.2026: yön pimein vaihe tummenee vielä auringon ollessa -12°…-18° horisontin alla. Taivas, maa, puut ja vesi tummenevat asteittain; päivän, hämärän ja valoisan kesäyön sävyjä ei muuteta.
