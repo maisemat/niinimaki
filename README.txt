@@ -70,4 +70,4 @@ Veden pohjaväri tummenee hämärässä ja yöllä auringon korkeuden mukaan my�
 
 Tiet käyttävät samaa aurinko- ja yövalaistusta kuin maasto ja rakennukset. Tämä koskee myös liikuttaessa uudelleen muodostettavia lähialueen teitä.
 
-Saarten peitto heijastuksessa käyttää varsinaisen näkymän samoja maastokolmioita myös lähimaaston tarkentuessa. Saarten erillinen syvyyspiirto estää niiden takaisen rannan heijastusta näkymästä saaren maaston läpi. Se ei piirrä koko maastoa uudelleen eikä lataa uusia aineistoja.
+Saarten peitto heijastuksessa käyttää varsinaisen näkymän samoja maastokolmioita myös lähimaaston tarkentuessa. Saarten maasto heijastuu näkyvän maiseman samoilla väreillä, vuodenaikamuutoksilla ja valaistuksella. Sama pinta estää niiden takaisen rannan heijastusta näkymästä saaren maaston läpi. Karkea rantaverkko ei korvaa saarten tarkempaa pintaa. Se ei piirrä koko maastoa uudelleen eikä lataa uusia aineistoja.

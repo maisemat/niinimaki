@@ -37,7 +37,7 @@ window.createWaterReflections=function(options){
    if(reflectionReady.x>.5)reflected=sampleReflection(reflectionMap0,vReflection0,reflectionLevels.x,reflectionBounds0);
    if(reflectionReady.y>.5&&reflected.a==0.0)reflected=sampleReflection(reflectionMap1,vReflection1,reflectionLevels.y,reflectionBounds1);
    float incidence=abs(normalize(reflectionEye-vWaterWorld).y);
-   float reflectionStrength=.25+.45*pow(1.0-incidence,3.0);
+   float reflectionStrength=.75*(.25+.45*pow(1.0-incidence,3.0));
    gl_FragColor.rgb=gl_FragColor.rgb*(1.0-clamp(reflected.a*reflectionStrength,0.0,.7))+reflected.rgb*reflectionStrength;`);
  };
  const lakes=bodies.map(body=>{
@@ -68,7 +68,7 @@ window.createWaterReflections=function(options){
  }
  const landMaskUniforms={reflectionLandMask:{value:null},reflectionLandMaskBounds:{value:new THREE.Vector4()}};
  let nearForestSources=null,nearShoreTest=null,buildingDraws=0;
- let islandOcclusion=null,islandSources=null,islandTriangles=0;
+ let islandOcclusion=null,islandSources=null,islandTriangles=0,islandColorSources=[];
  let enabled=false,light=false,fine=false,proxyScene=null,coarseTerrain=null,terrainSummer=null,proxyHemi=null,proxySun=null,forestInstances=0;
  let lastSnow=-1,lastSpring=-1,passCount=0,lastRenderMs=0;
 
@@ -130,30 +130,54 @@ window.createWaterReflections=function(options){
    slots.push({renderTarget,width:1,height:1,plane:null,maskLake:null,landMask:null});uniforms['reflectionMap'+i].value=renderTarget.texture;
   }
  }
- // A depth-only copy of the islands stops the far shore showing through
- // gaps in reflected trees. Unlike the 200 m overview, it uses the exact
- // currently visible terrain triangles, including the refined near surface.
+ // Reflect the actual island ground, including its colors and lighting. The
+ // same mesh also blocks the far shore in gaps between reflected trees. Only
+ // island triangles are copied; the rest of the land keeps its coarse overview.
  function syncIslandOcclusion(){
   const sources=ground().map(mesh=>mesh.geometry);
-  if(islandSources&&sources.length===islandSources.length&&sources.every((g,i)=>g===islandSources[i]))return;
-  islandSources=sources;const positions=[];
+  if(islandSources&&sources.length===islandSources.length&&sources.every((g,i)=>g===islandSources[i])){syncIslandColors();return;}
+  islandSources=sources;islandColorSources=[];
+  const positions=[],normals=[];
   for(const geometry of sources){
-   const p=geometry.attributes.position,ids=geometry.index;
+   const p=geometry.attributes.position,ids=geometry.index,normal=geometry.attributes.normal,color=geometry.attributes.color;
    if(!p||!ids)continue;
+   const vertices=[],offset=positions.length;
    for(let k=0;k<ids.count;k+=3){
     const a=ids.getX(k),b=ids.getX(k+1),c=ids.getX(k+2);
     const e=originE+(p.getX(a)+p.getX(b)+p.getX(c))/3,n=originN-(p.getZ(a)+p.getZ(b)+p.getZ(c))/3;
     const rings=islandCells.get(Math.floor(e/islandCellSize)+','+Math.floor(n/islandCellSize));
     if(!rings||!rings.some(r=>inside(r,e,n)))continue;
-    for(const id of [a,b,c])positions.push(p.getX(id),p.getY(id),p.getZ(id));
+    for(const id of [a,b,c]){
+     positions.push(p.getX(id),p.getY(id),p.getZ(id));vertices.push(id);
+     normals.push(normal?normal.getX(id):0,normal?normal.getY(id):1,normal?normal.getZ(id):0);
+    }
    }
+   if(vertices.length&&color)islandColorSources.push({attribute:color,vertices,offset,version:-1});
   }
-  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.computeBoundingSphere();islandTriangles=positions.length/9;
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  geometry.setAttribute('normal',new THREE.Float32BufferAttribute(normals,3));
+  geometry.setAttribute('color',new THREE.BufferAttribute(new Float32Array(positions.length).fill(1),3));
+  geometry.computeBoundingSphere();islandTriangles=positions.length/9;
   if(!islandOcclusion){
-   islandOcclusion=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({side:THREE.DoubleSide,colorWrite:false,depthWrite:true}));
+   islandOcclusion=new THREE.Mesh(geometry,new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide}));
    islandOcclusion.name='Heijastuksen saarten maastopeitto';islandOcclusion.renderOrder=-2;proxyScene.add(islandOcclusion);
   }else{islandOcclusion.geometry.dispose();islandOcclusion.geometry=geometry;}
-  islandOcclusion.visible=islandTriangles>0;
+  islandOcclusion.visible=islandTriangles>0;syncIslandColors();
+ }
+ // Terrain colors change in place with the season. Copy them only when their
+ // source attribute changes, without rebuilding island geometry on each frame.
+ function syncIslandColors(){
+  const target=islandOcclusion.geometry.attributes.color;let changed=false;
+  for(const source of islandColorSources){
+   const a=source.attribute;if(a.version===source.version)continue;
+   for(let i=0;i<source.vertices.length;i++){
+    const id=source.vertices[i],k=source.offset+i*3;
+    target.array[k]=a.getX(id);target.array[k+1]=a.getY(id);target.array[k+2]=a.getZ(id);
+   }
+   source.version=a.version;changed=true;
+  }
+  if(changed)target.needsUpdate=true;
  }
  // Select existing far-tree groups within 450 m of a mapped shore (also islands).
  // This keeps the recognizable shoreline without rendering the whole forest.
@@ -207,8 +231,8 @@ window.createWaterReflections=function(options){
   for(let i=forestCopies.length-1;i>=0;i--){const tree=forestCopies[i];if(!tree.userData.near)continue;forestInstances-=tree.geometry.instanceCount;proxyScene.remove(tree);tree.geometry.dispose();tree.material.dispose();forestCopies.splice(i,1);}
   initialiseForest(sources,true);
  }
- // A small lake-local raster of the ORIGINAL water polygons prevents coarse
- // land triangles from bridging water, including narrow bays and small islands.
+ // A small lake-local raster of the ORIGINAL lake outlines prevents coarse
+ // land triangles from bridging water or replacing the exact island surface.
  // It is generated only when the viewed lake changes; no terrain files are loaded.
  function prepareLandMask(slot,lake){
   if(slot.maskLake!==lake){
@@ -217,7 +241,7 @@ window.createWaterReflections=function(options){
    const canvas=document.createElement('canvas');canvas.width=Math.max(64,Math.round(1024*Math.min(1,spanX/spanZ)));canvas.height=Math.max(64,Math.round(1024*Math.min(1,spanZ/spanX)));
    const ctx=canvas.getContext('2d');ctx.fillStyle='#000';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#fff';
    for(const body of bodies){const outer=body.outer;if(outer.e1<originE+box.min.x||outer.e0>originE+box.max.x||outer.n1<originN-box.max.z||outer.n0>originN-box.min.z)continue;
-    ctx.beginPath();for(const ring of [outer,...body.holes]){for(let i=0;i<ring.points.length;i++){const p=ring.points[i],x=(p[0]-originE-box.min.x)/spanX*canvas.width,y=(originN-p[1]-box.min.z)/spanZ*canvas.height;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.closePath();}ctx.fill('evenodd');
+    ctx.beginPath();for(const ring of [outer]){for(let i=0;i<ring.points.length;i++){const p=ring.points[i],x=(p[0]-originE-box.min.x)/spanX*canvas.width,y=(originN-p[1]-box.min.z)/spanZ*canvas.height;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.closePath();}ctx.fill();
    }
    slot.landMask=new THREE.CanvasTexture(canvas);slot.landMask.generateMipmaps=false;slot.landMask.minFilter=THREE.LinearFilter;slot.landMask.magFilter=THREE.LinearFilter;slot.maskLake=lake;
   }
