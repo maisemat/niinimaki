@@ -257,5 +257,10 @@ button,input,select,.badge,.status,.compass,.mapbox,.mapSourceNotice,.observer-l
 }
 
 /* Same compact controls as the rest of the expandable top panel. */
-#nightLightsToggle{flex:none;min-width:132px;min-height:25px;padding:3px 8px;border:1px solid #79908a;background:#e1e7dd;color:#183b3e;font-size:.72rem;white-space:nowrap}
-#nightLightsToggle[aria-pressed="true"]{background:#274e50;color:#fff}
+
+#waterReflectionsToggle,#waterReflectionsQuality{flex:none;min-width:132px;min-height:25px;padding:3px 8px;border:1px solid #79908a;background:#e1e7dd;color:#183b3e;font-size:.72rem;white-space:nowrap}
+#waterReflectionsToggle[aria-pressed="true"],#waterReflectionsQuality[aria-pressed="true"]{background:#274e50;color:#fff}
+@media(min-width:701px){.extraSettings{flex-wrap:wrap}}
+
+/* Reserve the long label width so the quality switch does not move its neighbours. */
+#waterReflectionsQuality{width:205px;max-width:100%;}

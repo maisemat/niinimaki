@@ -1,7 +1,7 @@
 window.addScenery=function(scene,height,originE,originN,G,infrastructure){
  const src=window.STRUCTURES||{buildings:[],forests:[]},shapes=src.buildings,cover=window.LANDCOVER;
  // Published footprints stay in place; the red walls and pitched roofs are generic illustrations.
- const wallPos=[],wallIdx=[],roofPos=[],roofIdx=[],detailPos=[],detailIdx=[];
+ const wallPos=[],wallIdx=[],roofPos=[],roofIdx=[],detailPos=[],detailIdx=[],reflectionBuildings=[];
  function quad(out,indices,a,b,c,d){const k=out.length/3;out.push(...a,...b,...c,...d);indices.push(k,k+1,k+2,k,k+2,k+3)}
  for(const building of shapes){let points=building.geometry;if(points.length>3&&points[0][0]===points.at(-1)[0]&&points[0][1]===points.at(-1)[1])points=points.slice(0,-1);if(points.length<3)continue;const winding=points.reduce((sum,p,i)=>{const q=points[(i+1)%points.length];return sum+(p[0]-originE)*(originN-q[1])-(q[0]-originE)*(originN-p[1])},0);
   const center=points.reduce((a,p)=>[a[0]+p[0]/points.length,a[1]+p[1]/points.length],[0,0]),ground=height(center[0],center[1]),rise=building.height<=3?1.1:2.1,eaves=ground+Math.max(2.5,building.height-rise),ridge=eaves+rise;
@@ -17,7 +17,7 @@ window.addScenery=function(scene,height,originE,originN,G,infrastructure){
    if((a[1]-vmid)*(b[1]-vmid)<-1e-8){const t=(vmid-a[1])/(b[1]-a[1]);edge.push([a[0]+t*(b[0]-a[0]),vmid])}edge.push(b);
    for(let j=1;j<edge.length;j++){const p=edge[j-1],q=edge[j];quad(wallPos,wallIdx,roofPoint(p[0],p[1],eaves),roofPoint(q[0],q[1],eaves),roofPoint(q[0],q[1],roofHeight(q[1])),roofPoint(p[0],p[1],roofHeight(p[1])))}}
  }
- function addBuildingMesh(pos,idx,color,shadows){if(!idx.length)return;const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();const mesh=new THREE.Mesh(g,new THREE.MeshLambertMaterial({color,side:THREE.DoubleSide}));mesh.castShadow=false;mesh.receiveShadow=true;scene.add(mesh)}
+ function addBuildingMesh(pos,idx,color,shadows){if(!idx.length)return;const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();const mesh=new THREE.Mesh(g,new THREE.MeshLambertMaterial({color,side:THREE.DoubleSide}));mesh.castShadow=false;mesh.receiveShadow=true;scene.add(mesh);reflectionBuildings.push(mesh)}
  addBuildingMesh(wallPos,wallIdx,0x9c3d32,true);addBuildingMesh(roofPos,roofIdx,0x785044,true);addBuildingMesh(detailPos,detailIdx,0xe7ddd0,false);
  // Road classes follow OSM highway/surface tags. Missing surfaces keep the ordinary gray.
  const roadTypes=[
@@ -29,7 +29,8 @@ window.addScenery=function(scene,height,originE,originN,G,infrastructure){
  ];
  function roadCode(feature){return window.ROAD_STYLES?.[feature.id]??(feature.kind==='main'?1:0)}
  function roadType(feature){return roadTypes[roadCode(feature)]||roadTypes[0]}
- // Short strips follow the same terrain heights as the ground mesh.
+ // Short strips follow the same terrain heights and lighting as the ground.
+ // Lambert materials make both road layers respond to the sun and night light.
  const roadBuffers=roadTypes.map(()=>({pos:[],idx:[]}));
  for(const f of window.MAP_FEATURES||[]){if(f.kind!=='road'&&f.kind!=='main')continue;
   const style=roadType(f),buffer=roadBuffers[roadCode(f)]||roadBuffers[0],pts=f.geometry;
@@ -42,9 +43,9 @@ window.addScenery=function(scene,height,originE,originN,G,infrastructure){
    }
   }
  }
- roadBuffers.forEach((buffer,code)=>{if(!buffer.idx.length)return;const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(buffer.pos,3));geometry.setIndex(buffer.idx);const mesh=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({color:roadTypes[code].color,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}));mesh.receiveShadow=true;scene.add(mesh)});
+ roadBuffers.forEach((buffer,code)=>{if(!buffer.idx.length)return;const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(buffer.pos,3));geometry.setIndex(buffer.idx);geometry.computeVertexNormals();const mesh=new THREE.Mesh(geometry,new THREE.MeshLambertMaterial({color:roadTypes[code].color,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}));mesh.name='Yleiskartan tiet';mesh.receiveShadow=true;scene.add(mesh)});
  // Terrain and all water are built together in the shared hydrology mesh.
- const C=window.CANOPY;if(!C)return{setGroundMode(){},updateLocalTrees(){},setProjectPhase(){},setSeasonVisual(){}};
+ const C=window.CANOPY;if(!C)return{reflectionBuildings,setGroundMode(){},updateLocalTrees(){},setProjectPhase(){},setSeasonVisual(){}};
  const raw=Uint8Array.from(atob(C.heights),ch=>ch.charCodeAt(0)),cols=C.cols,rows=C.rows,step=C.step;
  const species=window.SPECIES?.kinds?Uint8Array.from(atob(window.SPECIES.kinds),ch=>ch.charCodeAt(0)):null;
  // Index published road centrelines once. Check each actual tree location (not
@@ -68,7 +69,7 @@ window.addScenery=function(scene,height,originE,originN,G,infrastructure){
  // against the same refined ground surface that the viewer sees. Short strips
  // prevent the road from cutting through hills between elevation samples.
  let localRoadMeshes=[],localRoadCenter=null,localRoadRadius=0;
- const localRoadMaterials=roadTypes.map(style=>new THREE.MeshBasicMaterial({color:style.color,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
+ const localRoadMaterials=roadTypes.map(style=>new THREE.MeshLambertMaterial({color:style.color,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
  function updateLocalRoads(e,n,detailRadius=1700,force=false){
   const radius=Math.max(1800,detailRadius+250);
   if(!force&&localRoadCenter&&Math.hypot(e-localRoadCenter[0],n-localRoadCenter[1])<400&&radius===localRoadRadius)return;
@@ -86,7 +87,7 @@ window.addScenery=function(scene,height,originE,originN,G,infrastructure){
    }
   }
   for(const mesh of localRoadMeshes){scene.remove(mesh);mesh.geometry.dispose()}localRoadMeshes=[];
-  buffers.forEach((buffer,code)=>{if(!buffer.idx.length)return;const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(buffer.pos,3));geometry.setIndex(buffer.idx);const mesh=new THREE.Mesh(geometry,localRoadMaterials[code]);mesh.frustumCulled=false;mesh.receiveShadow=true;scene.add(mesh);localRoadMeshes.push(mesh)})
+  buffers.forEach((buffer,code)=>{if(!buffer.idx.length)return;const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(buffer.pos,3));geometry.setIndex(buffer.idx);geometry.computeVertexNormals();const mesh=new THREE.Mesh(geometry,localRoadMaterials[code]);mesh.name='Lähialueen tiet';mesh.frustumCulled=false;mesh.receiveShadow=true;scene.add(mesh);localRoadMeshes.push(mesh)})
  }
  const urbanAreas=window.URBAN_AREAS||[],urbanCells=new Map(),urbanCellSize=100,urbanMargin=25;
  for(let id=0;id<urbanAreas.length;id++){const pts=urbanAreas[id].geometry,es=pts.map(p=>p[0]),ns=pts.map(p=>p[1]);for(let i=Math.floor((Math.min(...es)-urbanMargin)/urbanCellSize);i<=Math.floor((Math.max(...es)+urbanMargin)/urbanCellSize);i++)for(let j=Math.floor((Math.min(...ns)-urbanMargin)/urbanCellSize);j<=Math.floor((Math.max(...ns)+urbanMargin)/urbanCellSize);j++){const key=i+','+j;if(!urbanCells.has(key))urbanCells.set(key,[]);urbanCells.get(key).push(id)}}
@@ -202,5 +203,5 @@ window.addScenery=function(scene,height,originE,originN,G,infrastructure){
  }
  function setGroundMode(active,e,n){localVisible=active;if(active)updateLocalTrees(e,n);for(const mesh of localTrees)mesh.visible=active}
  function setRenderQuality(light,e,n){if(lightRender===light)return;lightRender=light;updateLocalTrees(e,n,true)}
- return{buildings:shapes.length,forestCells,source:'Suomen metsäkeskuksen latvusmalli',setGroundMode,updateLocalTrees,updateLocalRoads,setProjectPhase,setSeasonVisual,setRenderQuality,setDaylight};
+ return{buildings:shapes.length,reflectionBuildings,forestCells,getReflectionForest:()=>({far:globalTrees,near:localTrees}),source:'Suomen metsäkeskuksen latvusmalli',setGroundMode,updateLocalTrees,updateLocalRoads,setProjectPhase,setSeasonVisual,setRenderQuality,setDaylight};
 };

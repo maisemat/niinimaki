@@ -1,6 +1,6 @@
 // Niinimäki YVA 18.2.2025 §4.1.3 and Traficom guidance 7.9.2020:
 // day 100,000 cd white B; twilight 20,000 cd white B; night permits
-// 2,000 cd white B, red B or steady red C. This demo offers red B/C,
+// 2,000 cd white B, red B or steady red C. This demo uses steady red C,
 // not a confirmed project permit. Intermediate steady red B lights <=52 m apart.
 // Display point sizes/brightness are illustrative, not a photometric cd simulation.
 window.createObstructionLights=function(scene,turbines,renderer){
@@ -8,7 +8,7 @@ window.createObstructionLights=function(scene,turbines,renderer){
  // The demo nacelle roof is at 180 + 8/2 m. The 2 m light offset is illustrative;
  // no project-specific mounting height has been published in the cited guidance.
  const roofLightY=180+8/2+2;
- let mode='day',phase=1,nightFlashing=false,lastSeconds=0;
+ let mode='day',phase=1;
  function makeLights(positions,size){
   const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
   const material=new THREE.ShaderMaterial({
@@ -43,16 +43,15 @@ window.createObstructionLights=function(scene,turbines,renderer){
   setPhase(phase);
  }
  function setPhase(value){phase=value;roof.visible=phase===1;tower.visible=phase===1&&mode!=='day';}
- function setNightFlashing(value){nightFlashing=Boolean(value);update(lastSeconds)}
  function update(seconds){
-  lastSeconds=seconds;
-  // 50 flashes/minute, synchronous across all nine turbines. Use elapsed real time,
+  // White day/twilight lights flash 50 times/minute across all nine turbines.
+  // Red night lights stay on. Use elapsed real time for white flashes,
   // so pausing/speeding up the landscape clock or stopping rotors changes no cadence.
   const pulse=(seconds%1.2)<.16?1:0;
-  roof.material.uniforms.brightness.value=1.25*(mode==='night'&&!nightFlashing?1:pulse);
-  tower.material.uniforms.brightness.value=1;
+  roof.material.uniforms.brightness.value=1.25*(mode==='night'?1:pulse);
+  tower.material.uniforms.brightness.value=.55;
   const ratio=renderer.getPixelRatio();roof.material.uniforms.pixelRatio.value=ratio;tower.material.uniforms.pixelRatio.value=ratio;
   setPhase(phase);
  }
- updatePlacement();return{setSunAltitude,setPhase,setNightFlashing,updatePlacement,update,roof,tower,get mode(){return mode},get nightFlashing(){return nightFlashing}};
+ updatePlacement();return{setSunAltitude,setPhase,updatePlacement,update,roof,tower,get mode(){return mode}};
 };
