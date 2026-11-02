@@ -71,3 +71,5 @@ Veden pohjaväri tummenee hämärässä ja yöllä auringon korkeuden mukaan my�
 Tiet käyttävät samaa aurinko- ja yövalaistusta kuin maasto ja rakennukset. Tämä koskee myös liikuttaessa uudelleen muodostettavia lähialueen teitä.
 
 Saarten peitto heijastuksessa käyttää varsinaisen näkymän samoja maastokolmioita myös lähimaaston tarkentuessa. Saarten maasto heijastuu näkyvän maiseman samoilla väreillä, vuodenaikamuutoksilla ja valaistuksella. Sama pinta estää niiden takaisen rannan heijastusta näkymästä saaren maaston läpi. Karkea rantaverkko ei korvaa saarten tarkempaa pintaa. Se ei piirrä koko maastoa uudelleen eikä lataa uusia aineistoja.
+
+2.11.2026: Äänen kuuntelupainikkeiden edessä lukee "Suuntaa antava äänihavainnollistus". Lähteet ja mallin rajat -kohdassa kerrotaan selkeästi meluarvion ja kuuntelun suuntaa antavuus, puhevertailun tarkoitus sekä äänen soinnin ja kuulokekuuntelun rajoitukset.
